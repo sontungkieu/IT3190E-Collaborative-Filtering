@@ -14,6 +14,16 @@ services:
     ports:
       - "8003:8003"
 
+  review-service:
+    build: ./services/review
+    ports:
+      - "8004:8004"
+    volumes:
+      - ./data/Electronics-5core.json:/app/reviews.jsonl:ro
+      # mount thư mục db (host) → /app/db (container)
+      - ./data/sqlite:/app/db
+
+
   ui-service:
     build: ./services/ui
     ports:

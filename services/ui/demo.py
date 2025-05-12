@@ -56,6 +56,24 @@ with gr.Blocks() as demo:
         rec_output = gr.Textbox(label="Recommendations")
         rec_btn = gr.Button("Get Recommendation")
         rec_btn.click(fn=recommend, inputs=[token_state, prod_dropdown], outputs=[rec_output])
+    
+    with gr.Tab("Reviews"):
+        asin_input = gr.Textbox(label="Product ASIN", placeholder="ví dụ B07PGL2N7J")
+        review_btn = gr.Button("Load Reviews")
+        review_output = gr.Dataframe(headers=["reviewer","rating","title","text"], datatype=["str","number","str","str"])
+        
+        def load_reviews(asin):
+            try:
+                resp = requests.get(f"http://review-service:8004/reviews?asin={asin}")
+                resp.raise_for_status()
+                data = resp.json()
+                # chuyển sang list of lists
+                rows = [[r["reviewer"], r["rating"], r["title"], r["text"]] for r in data]
+                return rows
+            except Exception as e:
+                return [[f"Error: {e}", "", "", ""]]
+
+        review_btn.click(fn=load_reviews, inputs=[asin_input], outputs=[review_output])
 
     gr.Markdown("*Bạn cần login trước khi load products và nhận gợi ý.*")
 
