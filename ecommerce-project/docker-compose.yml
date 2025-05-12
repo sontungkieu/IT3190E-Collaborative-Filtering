@@ -1,0 +1,18 @@
+# docker-compose.yml
+version: "3.8"
+services:
+  product-service:
+    build: ./services/product
+    ports:
+      - "8001:8001"
+  rec-service:
+    build: ./services/recommendation
+    ports:
+      - "8002:8002"
+  ui-service:
+    build: ./services/ui
+    ports:
+      - "7860:7860"
+    depends_on:
+      - product-service
+      - rec-service
