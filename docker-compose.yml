@@ -9,6 +9,11 @@ services:
     build: ./services/recommendation
     ports:
       - "8002:8002"
+  user-service:
+    build: ./services/user
+    ports:
+      - "8003:8003"
+
   ui-service:
     build: ./services/ui
     ports:
@@ -16,3 +21,4 @@ services:
     depends_on:
       - product-service
       - rec-service
+      - user-service

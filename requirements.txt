@@ -1,1 +1,6 @@
 datasets
+
+#user
+# python-multipart
+# fastapi 
+# uvicorn sqlmodel passlib[bcrypt] pyjwt
