@@ -2,7 +2,7 @@ FROM python:3.10-slim
 WORKDIR /app
 
 # Cài dependencies
-RUN pip install fastapi uvicorn sqlmodel passlib[bcrypt] pyjwt python-multipart
+RUN pip install fastapi uvicorn sqlmodel passlib[bcrypt] pyjwt python-multipart 
 
 COPY app.py .
 

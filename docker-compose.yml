@@ -5,6 +5,11 @@ services:
     build: ./services/product
     ports:
       - "8001:8001"
+    volumes:
+      - ./data/sqlite:/app/db:ro
+      - ./data/meta_Electronics.csv:/app/meta_Electronics.csv:ro
+
+
   rec-service:
     build: ./services/recommendation
     ports:
@@ -28,6 +33,8 @@ services:
     build: ./services/ui
     ports:
       - "7860:7860"
+    volumes:
+    - ./data/meta_Electronics.csv:/app/meta_Electronics.csv:ro
     depends_on:
       - product-service
       - rec-service
