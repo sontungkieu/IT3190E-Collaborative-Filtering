@@ -74,3 +74,37 @@ jobs:
           push: true
           tags: >
             ${{ secrets.DOCKERHUB_USERNAME }}/ui-service:latest
+
+
+  deploy-to-gcp:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for Docker Hub
+        run: sleep 30
+
+      - name: Deploy to GCP VM
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.GCP_VM_IP }}
+          username: deploy
+          key: ${{ secrets.DEPLOY_PRIVATE_KEY }}
+          script: |
+            set -e
+
+            cd /home/deploy
+
+            if [ ! -d app ]; then
+              echo "🔄 Cloning repo for the first time…"
+              git clone https://github.com/<your-user>/<your-repo>.git app
+            else
+              echo "🔄 Repo exists, pulling latest changes…"
+              cd app
+              git pull origin main
+              cd ..
+            fi
+
+            echo "🚀 Pulling and restarting Docker Compose stack…"
+            cd app
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d
