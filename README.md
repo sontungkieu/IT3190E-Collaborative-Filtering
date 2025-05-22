@@ -8,9 +8,9 @@ E‑commerce businesses of all sizes rely on personalized product recommendation
 
 * **Microservices Architecture**: Five independent services (product, recommendation, review, user, UI) orchestrated with Docker Compose and Kubernetes.
 * **Hybrid Algorithms**: Matrix Factorization, SBERT‑driven CB+CF, LightFM hybrid, UltraGCN.
-* **MLOps Pipeline**: End‑to‑end automation with MongoDB → Debezium → Airflow → Feast → W\&B → GCR → GKE → ArgoCD → Prometheus/Grafana.
+* **MLOps Pipeline**:  automation with MongoDB → Airflow → Feast → W\&B → GCR → GKE .
 * **Evaluation Metrics**: Precision\@K, Recall\@K, NDCG\@K, MAP\@K, MRR, RMSE.
-* **CI/CD & GitOps**: GitHub Actions for testing/building, ArgoCD for automated deployments.
+* **CI/CD & GitOps**: GitHub Actions for testing/building, automated deployments.
 
 ## Repository Structure
 
