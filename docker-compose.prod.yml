@@ -1,0 +1,41 @@
+services:
+  product-service:
+    image: your_dockerhub_username/product-service:latest
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./data/sqlite:/app/db:ro
+
+  rec-service:
+    image: your_dockerhub_username/rec-service:latest
+    ports:
+      - "8002:8002"
+
+  user-service:
+    image: your_dockerhub_username/user-service:latest
+    ports:
+      - "8003:8003"
+
+  review-service:
+    image: your_dockerhub_username/review-service:latest
+    ports:
+      - "8004:8004"
+    volumes:
+      - ./data/Electronics-5core.json:/app/reviews.jsonl:ro
+      - ./data/sqlite:/app/db:ro
+
+  ui-service:
+    image: your_dockerhub_username/ui-service:latest
+    ports:
+      - "7860:7860"
+    volumes:
+      - ./data/meta_Electronics.csv:/app/meta_Electronics.csv:ro
+    depends_on:
+      - product-service
+      - rec-service
+      - user-service
+
+# Notes:
+# - Replace `your_dockerhub_username` with your actual Docker Hub account name.
+# - `docker-compose.prod.yml` pulls images directly, so no build steps occur locally.
+# - Keep host-volume mappings for read-only data as needed.

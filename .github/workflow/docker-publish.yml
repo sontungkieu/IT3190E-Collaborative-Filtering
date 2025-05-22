@@ -1,0 +1,76 @@
+# .github/workflows/docker-publish.yml
+
+name: Build & Publish Docker Images
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      # 1) checkout your code
+      - uses: actions/checkout@v4
+
+      # 2) set up QEMU (for multi-arch builds if you need)
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      # 3) set up Buildx builder
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 4) login to Docker Hub (requires you to set DOCKERHUB_USERNAME & DOCKERHUB_TOKEN in Settings→Secrets)
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 5) build & push each service
+      - name: Build & push product-service
+        uses: docker/build-push-action@v4
+        with:
+          context: services/product
+          file: services/product/Dockerfile
+          push: true
+          tags: >
+            ${{ secrets.DOCKERHUB_USERNAME }}/product-service:latest
+
+      - name: Build & push rec-service
+        uses: docker/build-push-action@v4
+        with:
+          context: services/recommendation
+          file: services/recommendation/Dockerfile
+          push: true
+          tags: >
+            ${{ secrets.DOCKERHUB_USERNAME }}/rec-service:latest
+
+      - name: Build & push user-service
+        uses: docker/build-push-action@v4
+        with:
+          context: services/user
+          file: services/user/Dockerfile
+          push: true
+          tags: >
+            ${{ secrets.DOCKERHUB_USERNAME }}/user-service:latest
+
+      - name: Build & push review-service
+        uses: docker/build-push-action@v4
+        with:
+          context: services/review
+          file: services/review/Dockerfile
+          push: true
+          tags: >
+            ${{ secrets.DOCKERHUB_USERNAME }}/review-service:latest
+
+      - name: Build & push ui-service
+        uses: docker/build-push-action@v4
+        with:
+          context: services/ui
+          file: services/ui/Dockerfile
+          push: true
+          tags: >
+            ${{ secrets.DOCKERHUB_USERNAME }}/ui-service:latest
