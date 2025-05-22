@@ -62,7 +62,7 @@ echo "✅ Hoàn tất set core5."
 
 # 3. Download metadata từ SNAP
 META_URL="https://snap.stanford.edu/data/amazon/productGraph/categoryFiles/meta_Electronics.json.gz"
-if [ ! -f data/meta_Electronics.csv]; then
+if [ ! -f data/meta_Electronics.csv ]; then
   echo "→ Tải metadata sản phẩm từ Stanford SNAP"
   curl -L "$META_URL" -o data/meta_Electronics.json.gz
   echo "→ Giải nén metadata..."
