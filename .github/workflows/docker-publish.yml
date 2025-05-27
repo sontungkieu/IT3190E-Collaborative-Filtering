@@ -96,7 +96,7 @@ jobs:
 
             if [ ! -d app ]; then
               echo "🔄 Cloning repo for the first time…"
-              git clone https://github.com/<your-user>/<your-repo>.git app
+              git clone https://github.com/sontungkieu/IT3190E-Collaborative-Filtering.git app
             else
               echo "🔄 Repo exists, pulling latest changes…"
               cd app
