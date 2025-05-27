@@ -111,7 +111,7 @@
 
 # .github/workflows/docker-publish.yml
 
-name: Build & Publish & Deploy
+name: Build, Publish & Deploy
 
 on:
   push:
@@ -181,21 +181,30 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
-      - name: Wait for Docker Hub to finish
+      - name: Wait for Docker Hub to settle
         run: sleep 30
+
+      # Optional: Verify your secret actually has multiple lines
+      - name: Check SSH key length
+        run: echo "${{ secrets.DEPLOY_PRIVATE_KEY }}" | wc -l
+
+      - name: Save SSH private key to file
+        run: |
+          echo "${{ secrets.DEPLOY_PRIVATE_KEY }}" > deploy_key
+          chmod 600 deploy_key
 
       - name: Deploy to GCP VM
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.GCP_VM_IP }}
           username: deploy
-          key: ${{ secrets.DEPLOY_PRIVATE_KEY }}
+          key_path: deploy_key           # point to the file we just wrote
           port: 22
-          sync: false                       # don’t sync local files
-          use_insecure_cipher: false       # enforce secure ciphers
-          timeout: 30s                     # overall SSH timeout
-          command_timeout: 10m             # timeout per command
-          debug: true                      # turn on ssh -vvv logs
+          sync: false
+          use_insecure_cipher: false
+          timeout: 30s
+          command_timeout: 10m
+          debug: true                    # prints ssh -vvv logs
           # passphrase: ${{ secrets.SSH_PASSPHRASE }}  # if your key is encrypted
           script: |
             set -e
