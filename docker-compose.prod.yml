@@ -34,6 +34,15 @@ services:
       - product-service
       - rec-service
       - user-service
+  react-ui-service:
+    image: codemaivanngu/react-ui-service:latest
+    ports:
+      - "3000:3000"                  # expose port 3000 ra host
+    depends_on:
+      - product-service
+      - rec-service
+      - user-service
+      - review-service
 
 # Notes:
 # - Replace `your_dockerhub_username` with your actual Docker Hub account name.

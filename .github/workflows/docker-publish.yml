@@ -74,6 +74,14 @@ jobs:
           push: true
           tags: >
             ${{ secrets.DOCKERHUB_USERNAME }}/ui-service:latest
+      - name: Build & push react-ui-service
+        uses: docker/build-push-action@v4
+        with:
+          context: services/UI
+          file: services/UI/Dockerfile
+          push: true
+          tags: >
+            ${{ secrets.DOCKERHUB_USERNAME }}/react-ui-service:latest
 
 
   deploy-to-gcp:
@@ -96,7 +104,7 @@ jobs:
 
             if [ ! -d app ]; then
               echo "🔄 Cloning repo for the first time…"
-              git clone https://github.com/<your-user>/<your-repo>.git app
+              git clone https://github.com/sontungkieu/IT3190E-Collaborative-Filtering.git app
             else
               echo "🔄 Repo exists, pulling latest changes…"
               cd app
