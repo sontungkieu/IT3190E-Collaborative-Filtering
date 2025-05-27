@@ -1,5 +1,4 @@
 # docker-compose.yml
-version: "3.8"
 services:
   product-service:
     build: ./services/product
@@ -39,3 +38,14 @@ services:
       - product-service
       - rec-service
       - user-service
+  react-ui-service:
+    build:
+      context: ./services/UI         # build context là thư mục chứa Dockerfile
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"                  # expose port 3000 ra host
+    depends_on:
+      - product-service
+      - rec-service
+      - user-service
+      - review-service
