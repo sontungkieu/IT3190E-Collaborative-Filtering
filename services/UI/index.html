@@ -4,10 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Experimental UI</title>
+
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
   </head>
   <body>
     <div id="root"></div>
-    <!-- now load main.jsx, which in turn imports App -->
-   <script type="module" src="/main.jsx"></script>
+
+    <!-- Your React app entry—Vite will serve main.jsx, which imports app.jsx -->
+    <script type="module" src="/main.jsx"></script>
   </body>
 </html>
