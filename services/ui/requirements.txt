@@ -1,0 +1,10 @@
+# fastapi
+# uvicorn[standard]
+# sqlmodel
+# passlib[bcrypt]
+# bcrypt>=4.0.1
+# PyJWT
+# python-multipart
+gradio 
+requests 
+ujson

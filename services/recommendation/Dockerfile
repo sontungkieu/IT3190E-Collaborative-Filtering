@@ -1,6 +1,7 @@
 # services/recommendation/Dockerfile
 FROM python:3.10-slim
 WORKDIR /app
-RUN pip install fastapi uvicorn requests
-COPY app.py .
+COPY . .
+# RUN pip install -r recommendation/requirements.txt
+RUN pip install -r requirements.txt
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8002"]
