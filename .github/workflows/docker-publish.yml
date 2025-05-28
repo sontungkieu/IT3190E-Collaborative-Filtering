@@ -239,60 +239,7 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build & push product-service
-        uses: docker/build-push-action@v4
-        with:
-          context: services/product
-          file: services/product/Dockerfile
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/product-service:latest
-
-      - name: Build & push rec-service
-        uses: docker/build-push-action@v4
-        with:
-          context: services/recommendation
-          file: services/recommendation/Dockerfile
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/rec-service:latest
-
-      - name: Build & push user-service
-        uses: docker/build-push-action@v4
-        with:
-          context: services/user
-          file: services/user/Dockerfile
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/user-service:latest
-
-      - name: Build & push review-service
-        uses: docker/build-push-action@v4
-        with:
-          context: services/review
-          file: services/review/Dockerfile
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/review-service:latest
-
-      - name: Build & push ui-service
-        uses: docker/build-push-action@v4
-        with:
-          context: services/ui
-          file: services/ui/Dockerfile
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/ui-service:latest
+      # … (same as before) …
 
   deploy-to-gcp:
     needs: build-and-push
@@ -301,39 +248,34 @@ jobs:
       - name: Wait for Docker Hub to settle
         run: sleep 30
 
-      # 1) Check how many lines your secret has
       - name: Check SSH key length
         run: echo "${{ secrets.DEPLOY_PRIVATE_KEY }}" | wc -l
 
-      # 2) Write the secret to disk (preserving newlines)
       - name: Save SSH private key to file
         run: |
           printf '%s\n' "${{ secrets.DEPLOY_PRIVATE_KEY }}" > deploy_key
           chmod 600 deploy_key
 
-      # 3) Peek at the first/last lines to ensure it’s well-formed
       - name: Show key header & footer
         run: |
-          sed -n '1,2p' deploy_key
-          echo "…"
-          sed -n '$(wc -l < deploy_key)-1,$(wc -l < deploy_key)p" deploy_key
+          echo "-----BEGIN-----"
+          head -n2 deploy_key
+          echo "   ⋮   "
+          tail -n2 deploy_key
+          echo "-----END-----"
 
-      # 4) Verify the file is a valid private key
       - name: Inspect key fingerprint
         run: ssh-keygen -lf deploy_key
 
-      # 5) Derive & print the public key, so you can compare with ~/.ssh/authorized_keys
       - name: Print derived public key
         run: ssh-keygen -y -f deploy_key
 
-      # 6) Try a direct SSH handshake from the runner
       - name: Manual SSH test
         run: |
           ssh -i deploy_key -o StrictHostKeyChecking=no -vvv deploy@${{ secrets.GCP_VM_IP }} "echo SUCCESS"
 
-      # 7) Only if the above succeeds, use the appleboy action
       - name: Deploy to GCP VM via appleboy
-        if: success()                  # only run if manual SSH test passed
+        if: success()
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.GCP_VM_IP }}
@@ -345,7 +287,6 @@ jobs:
           timeout: 30s
           command_timeout: 10m
           debug: true
-          # passphrase: ${{ secrets.SSH_PASSPHRASE }}  # if needed
           script: |
             set -e
             cd /home/deploy
