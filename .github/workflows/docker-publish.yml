@@ -299,22 +299,20 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
-      - name: Wait for images to be available
+      - name: Wait for images to propagate
         run: sleep 30
 
-      # Ghi private key vào file để appleboy/ssh-action đọc
-      - name: Install SSH key
+      - name: Save SSH private key to workspace
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.DEPLOY_PRIVATE_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "${{ secrets.DEPLOY_PRIVATE_KEY }}" > deploy_key
+          chmod 600 deploy_key
 
       - name: Deploy to GCP VM
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.GCP_VM_IP }}
           username: deploy
-          key_path: ~/.ssh/deploy_key
+          key_path: deploy_key
           port: 22
           sync: false
           use_insecure_cipher: false
