@@ -302,22 +302,18 @@ jobs:
       - name: Wait for images to propagate
         run: sleep 30
 
-      - name: Save SSH private key to workspace
-        run: |
-          printf '%s\n' "${{ secrets.DEPLOY_PRIVATE_KEY }}" > deploy_key
-          chmod 600 deploy_key
-
       - name: Deploy to GCP VM
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.GCP_VM_IP }}
           username: deploy
-          key_path: deploy_key
+          key: ${{ secrets.DEPLOY_PRIVATE_KEY }}     # ← let the action manage the file
           port: 22
           sync: false
           use_insecure_cipher: false
           timeout: 30s
           command_timeout: 10m
+          debug: true                               # turn off once it’s green
           script: |
             set -e
             cd /home/deploy
