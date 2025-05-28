@@ -227,8 +227,9 @@
 #             docker compose -f docker-compose.prod.yml up -d
 
 # .github/workflows/docker-publish.yml
+# .github/workflows/docker-publish.yml
 
-name: Build, Publish & Deploy
+name: Build → Publish → Deploy
 
 on:
   push:
@@ -242,7 +243,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up QEMU
+      - name: Set up QEMU (multi-arch)
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
@@ -298,57 +299,42 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
-      - name: Wait for Docker Hub to settle
+      - name: Wait for images to be available
         run: sleep 30
 
-      - name: Check SSH key length
-        run: echo "${{ secrets.DEPLOY_PRIVATE_KEY }}" | wc -l
-
-      - name: Save SSH private key to file
+      # Ghi private key vào file để appleboy/ssh-action đọc
+      - name: Install SSH key
         run: |
-          printf '%s\n' "${{ secrets.DEPLOY_PRIVATE_KEY }}" > deploy_key
-          chmod 600 deploy_key
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
 
-      - name: Show key header & footer
-        run: |
-          echo "-----BEGIN-----"
-          head -n2 deploy_key
-          echo "   ⋮   "
-          tail -n2 deploy_key
-          echo "-----END-----"
-
-      - name: Inspect key fingerprint
-        run: ssh-keygen -lf deploy_key
-
-      - name: Print derived public key
-        run: ssh-keygen -y -f deploy_key
-
-      - name: Manual SSH test
-        run: |
-          ssh -i deploy_key -o StrictHostKeyChecking=no -vvv deploy@${{ secrets.GCP_VM_IP }} "echo SUCCESS"
-
-      - name: Deploy to GCP VM via appleboy
-        if: success()
+      - name: Deploy to GCP VM
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.GCP_VM_IP }}
           username: deploy
-          key_path: deploy_key
+          key_path: ~/.ssh/deploy_key
           port: 22
           sync: false
           use_insecure_cipher: false
           timeout: 30s
           command_timeout: 10m
-          debug: true
-          # passphrase: ${{ secrets.SSH_PASSPHRASE }}  # uncomment if your private key is encrypted
           script: |
             set -e
             cd /home/deploy
+
             if [ ! -d app ]; then
+              echo "🔄 Cloning repo for the first time…"
               git clone https://github.com/sontungkieu/IT3190E-Collaborative-Filtering.git app
             else
-              cd app && git pull origin main && cd ..
+              echo "🔄 Repo exists, pulling latest changes…"
+              cd app
+              git pull origin main
+              cd ..
             fi
+
+            echo "🚀 Pulling and restarting Docker Compose stack…"
             cd app
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d
