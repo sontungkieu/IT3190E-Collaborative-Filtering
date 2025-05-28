@@ -1,6 +1,117 @@
+# # # .github/workflows/docker-publish.yml
+
+# # name: Build & Publish Docker Images
+
+# # on:
+# #   push:
+# #     branches:
+# #       - main
+
+# # jobs:
+# #   build-and-push:
+# #     runs-on: ubuntu-latest
+# #     steps:
+# #       # 1) checkout your code
+# #       - uses: actions/checkout@v4
+
+# #       # 2) set up QEMU (for multi-arch builds if you need)
+# #       - name: Set up QEMU
+# #         uses: docker/setup-qemu-action@v3
+
+# #       # 3) set up Buildx builder
+# #       - name: Set up Docker Buildx
+# #         uses: docker/setup-buildx-action@v3
+
+# #       # 4) login to Docker Hub (requires you to set DOCKERHUB_USERNAME & DOCKERHUB_TOKEN in Settings→Secrets)
+# #       - name: Log in to Docker Hub
+# #         uses: docker/login-action@v3
+# #         with:
+# #           username: ${{ secrets.DOCKERHUB_USERNAME }}
+# #           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+# #       # 5) build & push each service
+# #       - name: Build & push product-service
+# #         uses: docker/build-push-action@v4
+# #         with:
+# #           context: services/product
+# #           file: services/product/Dockerfile
+# #           push: true
+# #           tags: >
+# #             ${{ secrets.DOCKERHUB_USERNAME }}/product-service:latest
+
+# #       - name: Build & push rec-service
+# #         uses: docker/build-push-action@v4
+# #         with:
+# #           context: services/recommendation
+# #           file: services/recommendation/Dockerfile
+# #           push: true
+# #           tags: >
+# #             ${{ secrets.DOCKERHUB_USERNAME }}/rec-service:latest
+
+# #       - name: Build & push user-service
+# #         uses: docker/build-push-action@v4
+# #         with:
+# #           context: services/user
+# #           file: services/user/Dockerfile
+# #           push: true
+# #           tags: >
+# #             ${{ secrets.DOCKERHUB_USERNAME }}/user-service:latest
+
+# #       - name: Build & push review-service
+# #         uses: docker/build-push-action@v4
+# #         with:
+# #           context: services/review
+# #           file: services/review/Dockerfile
+# #           push: true
+# #           tags: >
+# #             ${{ secrets.DOCKERHUB_USERNAME }}/review-service:latest
+
+# #       - name: Build & push ui-service
+# #         uses: docker/build-push-action@v4
+# #         with:
+# #           context: services/ui
+# #           file: services/ui/Dockerfile
+# #           push: true
+# #           tags: >
+# #             ${{ secrets.DOCKERHUB_USERNAME }}/ui-service:latest
+
+
+# #   deploy-to-gcp:
+# #     needs: build-and-push
+# #     runs-on: ubuntu-latest
+# #     steps:
+# #       - name: Wait for Docker Hub
+# #         run: sleep 30
+
+# #       - name: Deploy to GCP VM
+# #         uses: appleboy/ssh-action@v0.1.7
+# #         with:
+# #           host: ${{ secrets.GCP_VM_IP }}
+# #           username: deploy
+# #           key: ${{ secrets.DEPLOY_PRIVATE_KEY }}
+# #           script: |
+# #             set -e
+
+# #             cd /home/deploy
+
+# #             if [ ! -d app ]; then
+# #               echo "🔄 Cloning repo for the first time…"
+# #               git clone https://github.com/sontungkieu/IT3190E-Collaborative-Filtering.git app
+# #             else
+# #               echo "🔄 Repo exists, pulling latest changes…"
+# #               cd app
+# #               git pull origin main
+# #               cd ..
+# #             fi
+
+# #             echo "🚀 Pulling and restarting Docker Compose stack…"
+# #             cd app
+# #             docker compose -f docker-compose.prod.yml pull
+# #             docker compose -f docker-compose.prod.yml up -d
+
 # # .github/workflows/docker-publish.yml
 
-# name: Build & Publish Docker Images
+# name: Build, Publish & Deploy
 
 # on:
 #   push:
@@ -11,33 +122,28 @@
 #   build-and-push:
 #     runs-on: ubuntu-latest
 #     steps:
-#       # 1) checkout your code
-#       - uses: actions/checkout@v4
+#       - name: Checkout code
+#         uses: actions/checkout@v4
 
-#       # 2) set up QEMU (for multi-arch builds if you need)
 #       - name: Set up QEMU
 #         uses: docker/setup-qemu-action@v3
 
-#       # 3) set up Buildx builder
 #       - name: Set up Docker Buildx
 #         uses: docker/setup-buildx-action@v3
 
-#       # 4) login to Docker Hub (requires you to set DOCKERHUB_USERNAME & DOCKERHUB_TOKEN in Settings→Secrets)
 #       - name: Log in to Docker Hub
 #         uses: docker/login-action@v3
 #         with:
 #           username: ${{ secrets.DOCKERHUB_USERNAME }}
 #           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-#       # 5) build & push each service
 #       - name: Build & push product-service
 #         uses: docker/build-push-action@v4
 #         with:
 #           context: services/product
 #           file: services/product/Dockerfile
 #           push: true
-#           tags: >
-#             ${{ secrets.DOCKERHUB_USERNAME }}/product-service:latest
+#           tags: ${{ secrets.DOCKERHUB_USERNAME }}/product-service:latest
 
 #       - name: Build & push rec-service
 #         uses: docker/build-push-action@v4
@@ -45,8 +151,7 @@
 #           context: services/recommendation
 #           file: services/recommendation/Dockerfile
 #           push: true
-#           tags: >
-#             ${{ secrets.DOCKERHUB_USERNAME }}/rec-service:latest
+#           tags: ${{ secrets.DOCKERHUB_USERNAME }}/rec-service:latest
 
 #       - name: Build & push user-service
 #         uses: docker/build-push-action@v4
@@ -54,8 +159,7 @@
 #           context: services/user
 #           file: services/user/Dockerfile
 #           push: true
-#           tags: >
-#             ${{ secrets.DOCKERHUB_USERNAME }}/user-service:latest
+#           tags: ${{ secrets.DOCKERHUB_USERNAME }}/user-service:latest
 
 #       - name: Build & push review-service
 #         uses: docker/build-push-action@v4
@@ -63,8 +167,7 @@
 #           context: services/review
 #           file: services/review/Dockerfile
 #           push: true
-#           tags: >
-#             ${{ secrets.DOCKERHUB_USERNAME }}/review-service:latest
+#           tags: ${{ secrets.DOCKERHUB_USERNAME }}/review-service:latest
 
 #       - name: Build & push ui-service
 #         uses: docker/build-push-action@v4
@@ -72,23 +175,37 @@
 #           context: services/ui
 #           file: services/ui/Dockerfile
 #           push: true
-#           tags: >
-#             ${{ secrets.DOCKERHUB_USERNAME }}/ui-service:latest
-
+#           tags: ${{ secrets.DOCKERHUB_USERNAME }}/ui-service:latest
 
 #   deploy-to-gcp:
 #     needs: build-and-push
 #     runs-on: ubuntu-latest
 #     steps:
-#       - name: Wait for Docker Hub
+#       - name: Wait for Docker Hub to settle
 #         run: sleep 30
+
+#       # Optional: Verify your secret actually has multiple lines
+#       - name: Check SSH key length
+#         run: echo "${{ secrets.DEPLOY_PRIVATE_KEY }}" | wc -l
+
+#       - name: Save SSH private key to file
+#         run: |
+#           echo "${{ secrets.DEPLOY_PRIVATE_KEY }}" > deploy_key
+#           chmod 600 deploy_key
 
 #       - name: Deploy to GCP VM
 #         uses: appleboy/ssh-action@v0.1.7
 #         with:
 #           host: ${{ secrets.GCP_VM_IP }}
 #           username: deploy
-#           key: ${{ secrets.DEPLOY_PRIVATE_KEY }}
+#           key_path: deploy_key           # point to the file we just wrote
+#           port: 22
+#           sync: false
+#           use_insecure_cipher: false
+#           timeout: 30s
+#           command_timeout: 10m
+#           debug: true                    # prints ssh -vvv logs
+#           # passphrase: ${{ secrets.SSH_PASSPHRASE }}  # if your key is encrypted
 #           script: |
 #             set -e
 
@@ -184,44 +301,59 @@ jobs:
       - name: Wait for Docker Hub to settle
         run: sleep 30
 
-      # Optional: Verify your secret actually has multiple lines
+      # 1) Check how many lines your secret has
       - name: Check SSH key length
         run: echo "${{ secrets.DEPLOY_PRIVATE_KEY }}" | wc -l
 
+      # 2) Write the secret to disk (preserving newlines)
       - name: Save SSH private key to file
         run: |
-          echo "${{ secrets.DEPLOY_PRIVATE_KEY }}" > deploy_key
+          printf '%s\n' "${{ secrets.DEPLOY_PRIVATE_KEY }}" > deploy_key
           chmod 600 deploy_key
 
-      - name: Deploy to GCP VM
+      # 3) Peek at the first/last lines to ensure it’s well-formed
+      - name: Show key header & footer
+        run: |
+          sed -n '1,2p' deploy_key
+          echo "…"
+          sed -n '$(wc -l < deploy_key)-1,$(wc -l < deploy_key)p" deploy_key
+
+      # 4) Verify the file is a valid private key
+      - name: Inspect key fingerprint
+        run: ssh-keygen -lf deploy_key
+
+      # 5) Derive & print the public key, so you can compare with ~/.ssh/authorized_keys
+      - name: Print derived public key
+        run: ssh-keygen -y -f deploy_key
+
+      # 6) Try a direct SSH handshake from the runner
+      - name: Manual SSH test
+        run: |
+          ssh -i deploy_key -o StrictHostKeyChecking=no -vvv deploy@${{ secrets.GCP_VM_IP }} "echo SUCCESS"
+
+      # 7) Only if the above succeeds, use the appleboy action
+      - name: Deploy to GCP VM via appleboy
+        if: success()                  # only run if manual SSH test passed
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.GCP_VM_IP }}
           username: deploy
-          key_path: deploy_key           # point to the file we just wrote
+          key_path: deploy_key
           port: 22
           sync: false
           use_insecure_cipher: false
           timeout: 30s
           command_timeout: 10m
-          debug: true                    # prints ssh -vvv logs
-          # passphrase: ${{ secrets.SSH_PASSPHRASE }}  # if your key is encrypted
+          debug: true
+          # passphrase: ${{ secrets.SSH_PASSPHRASE }}  # if needed
           script: |
             set -e
-
             cd /home/deploy
-
             if [ ! -d app ]; then
-              echo "🔄 Cloning repo for the first time…"
               git clone https://github.com/sontungkieu/IT3190E-Collaborative-Filtering.git app
             else
-              echo "🔄 Repo exists, pulling latest changes…"
-              cd app
-              git pull origin main
-              cd ..
+              cd app && git pull origin main && cd ..
             fi
-
-            echo "🚀 Pulling and restarting Docker Compose stack…"
             cd app
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d
