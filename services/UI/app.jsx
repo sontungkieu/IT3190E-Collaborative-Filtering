@@ -3,6 +3,8 @@ import './index.css';
 import { Search, ShoppingCart, User, Menu, ChevronRight, ChevronLeft, Star, Heart, Home, Clock, Package, Check, X } from 'lucide-react';
 
 const App = () => {
+  const API_BASE = `${window.location.protocol}//${window.location.hostname}:8003`;  // dynamic user-service host
+
   // Login / history modal states
   const [showLogin, setShowLogin] = useState(false);
   const [loginUsername, setLoginUsername] = useState('');
@@ -146,7 +148,7 @@ const App = () => {
   // Handle login
   const handleLogin = (username, password) => {
     console.log('Attempting login for:', username);
-    fetch('http://user-service:8003/login', {
+    fetch(`${API_BASE}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ username, password })
@@ -165,40 +167,102 @@ const App = () => {
     })
     .catch(err => console.error('Login error:', err));
   };
+  
   // handle search and record history
+  // Fetch and record search history
   const handleSearch = async () => {
     if (token) {
-      await fetch('http://user-service:8003/me/history/search', {
+      await fetch(`${API_BASE}/me/history/search`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ text: searchQuery })
       });
     }
     setSearchResults(products.slice(0, 10));
-    changePage('searchResults');
+    setCurrentPage('searchResults');
   };
 
   // === Load user history when token changes ===
+  // Load user history when token changes
   useEffect(() => {
     if (token) {
-      // fetch search history
-      fetch('http://user-service:8003/me/history/search', {
+      fetch(`${API_BASE}/me/history/search`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       .then(res => res.json())
       .then(data => setSearchHistory(data));
 
-      // fetch viewed products history
-      fetch('http://user-service:8003/me/history/view', {
+      fetch(`${API_BASE}/me/history/view`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       .then(res => res.json())
       .then(data => setViewedHistory(data));
     }
   }, [token]);
+  const renderModal = () => {
+    if (showLogin) {
+      return (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+            <h2 className="text-xl font-bold mb-4">Đăng nhập</h2>
+            <input
+              type="text"
+              placeholder="Username"
+              value={loginUsername}
+              onChange={e => setLoginUsername(e.target.value)}
+              className="w-full border rounded py-2 px-3 mb-3"
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={loginPassword}
+              onChange={e => setLoginPassword(e.target.value)}
+              className="w-full border rounded py-2 px-3 mb-4"
+            />
+            <div className="flex justify-end space-x-2">
+              <button
+                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                onClick={() => setShowLogin(false)}
+              >Hủy</button>
+              <button
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                onClick={() => handleLogin(loginUsername, loginPassword)}
+              >Đăng nhập</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (token) {
+      return (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4">Xin chào, {loginUsername}</h2>
+            <h3 className="font-semibold mb-2">Lịch sử tìm kiếm</h3>
+            <ul className="list-disc ml-6 mb-4">
+              {searchHistory.map((h, i) => (
+                <li key={i}>{h.text} <span className="text-gray-500 text-sm">({new Date(h.created_at).toLocaleString()})</span></li>
+              ))}
+            </ul>
+            <h3 className="font-semibold mb-2">Sản phẩm đã xem</h3>
+            <ul className="list-disc ml-6 mb-4">
+              {viewedHistory.map((v, i) => (
+                <li key={i}>{v.text} <span className="text-gray-500 text-sm">({new Date(v.created_at).toLocaleString()})</span></li>
+              ))}
+            </ul>
+            <button
+              className="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+              onClick={() => setShowLogin(false)}
+            >Đóng</button>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
   
   // ============= DỮ LIỆU MẪU =============
   // Dữ liệu mẫu sản phẩm - có thể thay thế bằng API hoặc dữ liệu thực tế
@@ -1056,68 +1120,7 @@ const App = () => {
       <Breadcrumb product={selectedProduct} />
       <Notification show={notification.show} message={notification.message} type={notification.type} />
 
-      {/* === LOGIN / HISTORY MODAL === */}
-      {/* Login / History Modal */}
-      {showLogin ? (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-sm">
-            <h2 className="text-xl font-bold mb-4">Đăng nhập</h2>
-            <input
-              type="text"
-              placeholder="Username"
-              value={loginUsername}
-              onChange={e => setLoginUsername(e.target.value)}
-              className="w-full border rounded py-2 px-3 mb-3"
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              value={loginPassword}
-              onChange={e => setLoginPassword(e.target.value)}
-              className="w-full border rounded py-2 px-3 mb-4"
-            />
-            <div className="flex justify-end space-x-2">
-              <button
-                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-                onClick={() => setShowLogin(false)}
-              >
-                Hủy
-              </button>
-              <button
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                onClick={() => { handleLogin(loginUsername, loginPassword); setShowLogin(false); }}
-              >
-                Đăng nhập
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : token ? (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Xin chào, {loginUsername}</h2>
-            <h3 className="font-semibold mb-2">Lịch sử tìm kiếm</h3>
-            <ul className="list-disc ml-6 mb-4">
-              {searchHistory.map((h, i) => (
-                <li key={i}>{h.text} <span className="text-gray-500 text-sm">({new Date(h.created_at).toLocaleString()})</span></li>
-              ))}
-            </ul>
-            <h3 className="font-semibold mb-2">Sản phẩm đã xem</h3>
-            <ul className="list-disc ml-6 mb-4">
-              {viewedHistory.map((v, i) => (
-                <li key={i}>{v.text} <span className="text-gray-500 text-sm">({new Date(v.created_at).toLocaleString()})</span></li>
-              ))}
-            </ul>
-            <button
-              className="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-              onClick={() => setShowLogin(false)}
-            >
-              Đóng
-            </button>
-          </div>
-        </div>
-      ) : null
-      }
+      {renderModal()}
 
 
       <main className={`flex-1 transition-opacity duration-300 ${pageTransition ? 'opacity-0' : 'opacity-100'}`}>

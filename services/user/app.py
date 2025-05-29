@@ -121,6 +121,7 @@
 
 # user/app.py (full backend with history integration)
 from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlmodel import SQLModel, Field, create_engine, Session, select
 from passlib.context import CryptContext
@@ -230,7 +231,18 @@ def get_current_user(
     return user
 
 # --- FastAPI app instance ---
+
+
 app = FastAPI(title="User Service")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # hoặc ["*"] để mở rộng
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 # --- Startup event: ensure default user exists ---
 @app.on_event("startup")
