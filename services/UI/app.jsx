@@ -145,29 +145,7 @@ const App = () => {
       ));
     }
   };
-  // Handle login
-  const handleLogin = (username, password) => {
-    console.log('Attempting login for:', username);
-    fetch(`${API_BASE}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ username, password })
-    })
-    .then(res => res.json())
-    .then(data => {
-      console.log('Login response:', data);
-      if (data.access_token) {
-        localStorage.setItem('token', data.access_token);
-        setToken(data.access_token);
-        setLoginUsername(username);
-        setShowLogin(false);
-      } else {
-        console.error('Login failed:', data);
-      }
-    })
-    .catch(err => console.error('Login error:', err));
-  };
-  
+
   // handle search and record history
   // Fetch and record search history
   const handleSearch = async () => {
@@ -185,85 +163,160 @@ const App = () => {
   // === Load user history when token changes ===
   // Load user history when token changes
   useEffect(() => {
-    if (token) {
-      fetch(`${API_BASE}/me/history/search`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      .then(res => res.json())
-      .then(data => setSearchHistory(data));
+    if (!token) return;
 
-      fetch(`${API_BASE}/me/history/view`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      .then(res => res.json())
-      .then(data => setViewedHistory(data));
-    }
+    const fetchHistories = async () => {
+      // Search history
+      try {
+        const resS = await fetch(`${API_BASE}/me/history/search`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (resS.ok) {
+          const data = await resS.json();
+          setSearchHistory(Array.isArray(data) ? data : []);
+        } else {
+          setSearchHistory([]);
+        }
+      } catch {
+        setSearchHistory([]);
+      }
+
+      // View history
+      try {
+        const resV = await fetch(`${API_BASE}/me/history/view`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (resV.ok) {
+          const data = await resV.json();
+          setViewedHistory(Array.isArray(data) ? data : []);
+        } else {
+          setViewedHistory([]);
+        }
+      } catch {
+        setViewedHistory([]);
+      }
+    };
+
+    fetchHistories();
   }, [token]);
-  const renderModal = () => {
-    if (showLogin) {
-      return (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-sm">
-            <h2 className="text-xl font-bold mb-4">Đăng nhập</h2>
-            <input
-              type="text"
-              placeholder="Username"
-              value={loginUsername}
-              onChange={e => setLoginUsername(e.target.value)}
-              className="w-full border rounded py-2 px-3 mb-3"
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              value={loginPassword}
-              onChange={e => setLoginPassword(e.target.value)}
-              className="w-full border rounded py-2 px-3 mb-4"
-            />
-            <div className="flex justify-end space-x-2">
-              <button
-                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-                onClick={() => setShowLogin(false)}
-              >Hủy</button>
-              <button
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                onClick={() => handleLogin(loginUsername, loginPassword)}
-              >Đăng nhập</button>
-            </div>
-          </div>
-        </div>
-      );
-    }
 
-    if (token) {
-      return (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Xin chào, {loginUsername}</h2>
-            <h3 className="font-semibold mb-2">Lịch sử tìm kiếm</h3>
-            <ul className="list-disc ml-6 mb-4">
-              {searchHistory.map((h, i) => (
-                <li key={i}>{h.text} <span className="text-gray-500 text-sm">({new Date(h.created_at).toLocaleString()})</span></li>
-              ))}
-            </ul>
-            <h3 className="font-semibold mb-2">Sản phẩm đã xem</h3>
-            <ul className="list-disc ml-6 mb-4">
-              {viewedHistory.map((v, i) => (
-                <li key={i}>{v.text} <span className="text-gray-500 text-sm">({new Date(v.created_at).toLocaleString()})</span></li>
-              ))}
-            </ul>
-            <button
-              className="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-              onClick={() => setShowLogin(false)}
-            >Đóng</button>
-          </div>
-        </div>
-      );
-    }
-
-    return null;
+  const handleLogin = (username, password) => {
+    fetch(`${API_BASE}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ username, password })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.access_token) {
+        localStorage.setItem('token', data.access_token);
+        setToken(data.access_token);
+        setShowLogin(false);
+      } else {
+        console.error('Login failed');
+      }
+    });
   };
 
-  
+  // Khi click icon User: clear token và open login modal
+  const handleUserIconClick = () => {
+    localStorage.removeItem('token');
+    setToken('');
+    setShowLogin(true);
+  };
+
+
+
+ // Render login/history modal
+  const renderModal = () => {
+    if (!showLogin) return null;
+
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+        <div className="bg-white rounded-lg p-6 w-full max-w-lg">
+          {!token ? (
+            // ==== LOGIN FORM ====
+            <>
+              <h2 className="text-xl font-bold mb-4">Đăng nhập</h2>
+              <input
+                type="text"
+                placeholder="Username"
+                value={loginUsername}
+                onChange={e => setLoginUsername(e.target.value)}
+                className="w-full border rounded py-2 px-3 mb-3"
+              />
+              <input
+                type="password"
+                placeholder="Password"
+                value={loginPassword}
+                onChange={e => setLoginPassword(e.target.value)}
+                className="w-full border rounded py-2 px-3 mb-4"
+              />
+              <div className="flex justify-end space-x-2">
+                <button
+                  className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                  onClick={() => setShowLogin(false)}
+                >Hủy</button>
+                <button
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  onClick={() => handleLogin(loginUsername, loginPassword)}
+                >Đăng nhập</button>
+              </div>
+            </>
+          ) : (
+            // ==== USER HISTORY + LOGOUT ====
+            <>
+              <h2 className="text-xl font-bold mb-4">Lịch sử của bạn</h2>
+              <div className="mb-4">
+                <h3 className="font-semibold mb-2">🔍 Search History</h3>
+                {searchHistory.length > 0 ? (
+                  <ul className="list-disc list-inside max-h-40 overflow-auto">
+                    {searchHistory.map((h, i) => (
+                      <li key={i}>
+                        {h.text} — {new Date(h.created_at).toLocaleString()}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-500">Chưa có lịch sử tìm kiếm.</p>
+                )}
+              </div>
+              <div className="mb-4">
+                <h3 className="font-semibold mb-2">👁️ Viewed History</h3>
+                {viewedHistory.length > 0 ? (
+                  <ul className="list-disc list-inside max-h-40 overflow-auto">
+                    {viewedHistory.map((h, i) => (
+                      <li key={i}>
+                        {h.text} — {new Date(h.created_at).toLocaleString()}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-500">Chưa có lịch sử xem.</p>
+                )}
+              </div>
+              <div className="flex justify-between">
+                <button
+                  className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                  onClick={() => setShowLogin(false)}
+                >Đóng</button>
+                <button
+                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                  onClick={() => {
+                    localStorage.removeItem('token');
+                    setToken('');
+                    setSearchHistory([]);
+                    setViewedHistory([]);
+                    setShowLogin(false);
+                  }}
+                >Đăng xuất</button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
   // ============= DỮ LIỆU MẪU =============
   // Dữ liệu mẫu sản phẩm - có thể thay thế bằng API hoặc dữ liệu thực tế
   const products = [
@@ -1110,9 +1163,21 @@ const App = () => {
             <button onClick={handleSearch} className="ml-2 bg-yellow-500 text-white py-2 px-4 rounded-md hover:bg-yellow-600">Tìm</button>
           </div>
           <div className="flex items-center space-x-6">
-            <div onClick={() => setCurrentPage('cart')}><ShoppingCart size={24} /></div>
-            <div onClick={() => setCurrentPage('history')}><Clock size={24} /></div>
-            <div className="cursor-pointer" onClick={() => setShowLogin(true)}><User size={24} /></div>
+            <div onClick={() => setCurrentPage('cart')}><ShoppingCart size={24}/></div>
+            <div
+                onClick={() =>
+                  token
+                    ? setCurrentPage('history')
+                    : setShowLogin(true)
+                }
+                className="cursor-pointer"
+              >
+                <Clock size={24}/>
+              </div>
+
+            <div className="cursor-pointer" onClick={() => setShowLogin(true)}>
+              <User size={24}/>
+            </div>
           </div>
         </div>
       </header>
