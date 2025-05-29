@@ -3,9 +3,18 @@ import './index.css';
 import { Search, ShoppingCart, User, Menu, ChevronRight, ChevronLeft, Star, Heart, Home, Clock, Package, Check, X } from 'lucide-react';
 
 const App = () => {
+  // Login / history modal states
   const [showLogin, setShowLogin] = useState(false);
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  const [searchHistory, setSearchHistory] = useState([]);
+  const [viewedHistory, setViewedHistory] = useState([]);
+
+  // new frontend state
+  const [token, setToken] = useState(() => localStorage.getItem('token') || '');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+
 
   // Quản lý trạng thái cho các trang khác nhau
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -15,10 +24,6 @@ const App = () => {
   const [viewedProducts, setViewedProducts] = useState([]);
   const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
   const [pageTransition, setPageTransition] = useState(false);
-  // new frontend state
-  const [token, setToken] = useState(() => localStorage.getItem('token') || '');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
 
 
   // Xử lý thêm vào giỏ hàng
@@ -138,18 +143,27 @@ const App = () => {
       ));
     }
   };
-  // handle login
+  // Handle login
   const handleLogin = (username, password) => {
+    console.log('Attempting login for:', username);
     fetch('http://user-service:8003/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ username, password })
     })
-      .then(res => res.json())
-      .then(data => {
+    .then(res => res.json())
+    .then(data => {
+      console.log('Login response:', data);
+      if (data.access_token) {
         localStorage.setItem('token', data.access_token);
         setToken(data.access_token);
-      });
+        setLoginUsername(username);
+        setShowLogin(false);
+      } else {
+        console.error('Login failed:', data);
+      }
+    })
+    .catch(err => console.error('Login error:', err));
   };
   // handle search and record history
   const handleSearch = async () => {
@@ -167,6 +181,25 @@ const App = () => {
     changePage('searchResults');
   };
 
+  // === Load user history when token changes ===
+  useEffect(() => {
+    if (token) {
+      // fetch search history
+      fetch('http://user-service:8003/me/history/search', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      .then(res => res.json())
+      .then(data => setSearchHistory(data));
+
+      // fetch viewed products history
+      fetch('http://user-service:8003/me/history/view', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      .then(res => res.json())
+      .then(data => setViewedHistory(data));
+    }
+  }, [token]);
+  
   // ============= DỮ LIỆU MẪU =============
   // Dữ liệu mẫu sản phẩm - có thể thay thế bằng API hoặc dữ liệu thực tế
   const products = [
@@ -992,7 +1025,7 @@ const App = () => {
   // ============= MAIN APP RENDER =============
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
-      {/* Header với search bar */}
+      {/* Header */}
       <header className="bg-red-600 text-white shadow-md">
         <div className="container mx-auto px-4 flex items-center justify-between py-3">
           <div className="flex items-center">
@@ -1015,13 +1048,77 @@ const App = () => {
           <div className="flex items-center space-x-6">
             <div onClick={() => setCurrentPage('cart')}><ShoppingCart size={24} /></div>
             <div onClick={() => setCurrentPage('history')}><Clock size={24} /></div>
-            <User size={24} />
+            <div className="cursor-pointer" onClick={() => setShowLogin(true)}><User size={24} /></div>
           </div>
         </div>
       </header>
 
       <Breadcrumb product={selectedProduct} />
       <Notification show={notification.show} message={notification.message} type={notification.type} />
+
+      {/* === LOGIN / HISTORY MODAL === */}
+      {/* Login / History Modal */}
+      {showLogin ? (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+            <h2 className="text-xl font-bold mb-4">Đăng nhập</h2>
+            <input
+              type="text"
+              placeholder="Username"
+              value={loginUsername}
+              onChange={e => setLoginUsername(e.target.value)}
+              className="w-full border rounded py-2 px-3 mb-3"
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={loginPassword}
+              onChange={e => setLoginPassword(e.target.value)}
+              className="w-full border rounded py-2 px-3 mb-4"
+            />
+            <div className="flex justify-end space-x-2">
+              <button
+                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                onClick={() => setShowLogin(false)}
+              >
+                Hủy
+              </button>
+              <button
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                onClick={() => { handleLogin(loginUsername, loginPassword); setShowLogin(false); }}
+              >
+                Đăng nhập
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : token ? (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4">Xin chào, {loginUsername}</h2>
+            <h3 className="font-semibold mb-2">Lịch sử tìm kiếm</h3>
+            <ul className="list-disc ml-6 mb-4">
+              {searchHistory.map((h, i) => (
+                <li key={i}>{h.text} <span className="text-gray-500 text-sm">({new Date(h.created_at).toLocaleString()})</span></li>
+              ))}
+            </ul>
+            <h3 className="font-semibold mb-2">Sản phẩm đã xem</h3>
+            <ul className="list-disc ml-6 mb-4">
+              {viewedHistory.map((v, i) => (
+                <li key={i}>{v.text} <span className="text-gray-500 text-sm">({new Date(v.created_at).toLocaleString()})</span></li>
+              ))}
+            </ul>
+            <button
+              className="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+              onClick={() => setShowLogin(false)}
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      ) : null
+      }
+
 
       <main className={`flex-1 transition-opacity duration-300 ${pageTransition ? 'opacity-0' : 'opacity-100'}`}>
         {currentPage === 'searchResults' && <SearchResults />}
@@ -1049,5 +1146,4 @@ const App = () => {
   );
 };
 
-  
 export default App;
