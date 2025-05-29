@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import './index.css';
 import { Search, ShoppingCart, User, Menu, ChevronRight, ChevronLeft, Star, Heart, Home, Clock, Package, Check, X } from 'lucide-react';
 
 const App = () => {
+  const [showLogin, setShowLogin] = useState(false);
+  const [loginUsername, setLoginUsername] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+
   // Quản lý trạng thái cho các trang khác nhau
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -10,6 +15,11 @@ const App = () => {
   const [viewedProducts, setViewedProducts] = useState([]);
   const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
   const [pageTransition, setPageTransition] = useState(false);
+  // new frontend state
+  const [token, setToken] = useState(() => localStorage.getItem('token') || '');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+
 
   // Xử lý thêm vào giỏ hàng
   const addToCart = (product) => {
@@ -127,6 +137,34 @@ const App = () => {
           : item
       ));
     }
+  };
+  // handle login
+  const handleLogin = (username, password) => {
+    fetch('http://user-service:8003/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ username, password })
+    })
+      .then(res => res.json())
+      .then(data => {
+        localStorage.setItem('token', data.access_token);
+        setToken(data.access_token);
+      });
+  };
+  // handle search and record history
+  const handleSearch = async () => {
+    if (token) {
+      await fetch('http://user-service:8003/me/history/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ text: searchQuery })
+      });
+    }
+    setSearchResults(products.slice(0, 10));
+    changePage('searchResults');
   };
 
   // ============= DỮ LIỆU MẪU =============
@@ -941,48 +979,75 @@ const App = () => {
     </div>
   );
 
+  // SearchResults component
+  const SearchResults = () => (
+    <div className="container mx-auto px-4 py-6">
+      <h2 className="text-xl font-bold mb-4">Kết quả tìm kiếm cho “{searchQuery}”</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {searchResults.map(p => <ProductCard key={p.id} product={p} />)}
+      </div>
+    </div>
+  );
+
   // ============= MAIN APP RENDER =============
   return (
-    <div className="min-h-screen bg-gray-100">
-      <Header />
+    <div className="min-h-screen flex flex-col bg-gray-100">
+      {/* Header với search bar */}
+      <header className="bg-red-600 text-white shadow-md">
+        <div className="container mx-auto px-4 flex items-center justify-between py-3">
+          <div className="flex items-center">
+            <div className="text-xl font-bold cursor-pointer" onClick={() => setCurrentPage('dashboard')}>TechShop</div>
+            <button className="ml-4 lg:hidden"><Menu size={24} /></button>
+          </div>
+          <div className="hidden lg:flex items-center flex-1 mx-4 max-w-xl">
+            <div className="relative w-full">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Bạn cần tìm gì?"
+                className="w-full border border-gray-300 rounded-md py-2 px-4 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800"
+              />
+              <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+            </div>
+            <button onClick={handleSearch} className="ml-2 bg-yellow-500 text-white py-2 px-4 rounded-md hover:bg-yellow-600">Tìm</button>
+          </div>
+          <div className="flex items-center space-x-6">
+            <div onClick={() => setCurrentPage('cart')}><ShoppingCart size={24} /></div>
+            <div onClick={() => setCurrentPage('history')}><Clock size={24} /></div>
+            <User size={24} />
+          </div>
+        </div>
+      </header>
+
       <Breadcrumb product={selectedProduct} />
-      
-      {/* Notification */}
-      <Notification 
-        show={notification.show} 
-        message={notification.message} 
-        type={notification.type} 
-      />
-      
-      {/* Main Content with Page Transition */}
-      <div className={`transition-opacity duration-300 ${pageTransition ? 'opacity-0' : 'opacity-100'}`}>
+      <Notification show={notification.show} message={notification.message} type={notification.type} />
+
+      <main className={`flex-1 transition-opacity duration-300 ${pageTransition ? 'opacity-0' : 'opacity-100'}`}>
+        {currentPage === 'searchResults' && <SearchResults />}
         {currentPage === 'dashboard' && <Dashboard />}
         {currentPage === 'product' && selectedProduct && <ProductDetail product={selectedProduct} />}
         {currentPage === 'cart' && <Cart />}
         {currentPage === 'history' && <OrderHistory />}
-      </div>
-      
-      {/* Footer */}
+      </main>
+
       <footer className="bg-gray-900 text-white py-8">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between">
-            <div className="mb-6 md:mb-0">
-              <h3 className="text-lg font-semibold mb-4">TechShop</h3>
-              <p className="text-gray-400 max-w-xs">Hệ thống cung cấp sản phẩm công nghệ uy tín hàng đầu Việt Nam</p>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Liên hệ</h3>
-              <p className="text-gray-400">Hotline: 1900 5301</p>
-              <p className="text-gray-400">Email: support@techshop.vn</p>
-            </div>
+        <div className="container mx-auto px-4 flex flex-col md:flex-row justify-between">
+          <div className="mb-6 md:mb-0">
+            <h3 className="text-lg font-semibold mb-4">TechShop</h3>
+            <p className="text-gray-400 max-w-xs">Hệ thống cung cấp sản phẩm công nghệ uy tín hàng đầu Việt Nam</p>
           </div>
-          <div className="border-t border-gray-800 mt-8 pt-6 text-sm text-gray-400 text-center">
-            <p>&copy; 2025 TechShop. Tất cả quyền được bảo lưu.</p>
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Liên hệ</h3>
+            <p className="text-gray-400">Hotline: 1900 5301</p>
+            <p className="text-gray-400">Email: support@techshop.vn</p>
           </div>
         </div>
+        <div className="border-t border-gray-800 mt-8 pt-6 text-sm text-gray-400 text-center">© 2025 TechShop</div>
       </footer>
     </div>
   );
 };
 
+  
 export default App;
