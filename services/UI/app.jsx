@@ -31,6 +31,28 @@ const App = () => {
   const [pageTransition, setPageTransition] = useState(false);
   
 
+  const fetchHistories = async () => {
+  if (!token) return;
+  try {
+    const resS = await fetch(`${API_BASE}/me/history/search`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const dataS = resS.ok ? await resS.json() : [];
+    setSearchHistory(Array.isArray(dataS) ? dataS : []);
+  } catch {
+    setSearchHistory([]);
+  }
+  try {
+    const resV = await fetch(`${API_BASE}/me/history/view`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const dataV = resV.ok ? await resV.json() : [];
+    setViewedHistory(Array.isArray(dataV) ? dataV : []);
+  } catch {
+    setViewedHistory([]);
+  }
+};
+
 
   // Xử lý thêm vào giỏ hàng
   const addToCart = (product) => {
@@ -109,14 +131,26 @@ const App = () => {
   };
 
   // Xử lý xem chi tiết sản phẩm
-  const viewProductDetail = (product) => {
+  const viewProductDetail = async (product) => {
     setSelectedProduct(product);
-    // Thêm vào sản phẩm đã xem
     if (!viewedProducts.find(item => item.id === product.id)) {
       setViewedProducts([product, ...viewedProducts.slice(0, 3)]);
     }
-    changePage('product');
+    if (token) {
+      await fetch(`${API_BASE}/me/history/view`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ text: product.title /* hoặc product.name */ })
+      });
+      await fetchHistories();
+    }
+
+    changePage('product', product);
   };
+
 
   // Xử lý xóa sản phẩm khỏi giỏ hàng
   const removeFromCart = (productId) => {
@@ -156,53 +190,26 @@ const App = () => {
     if (token) {
       await fetch(`${API_BASE}/me/history/search`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ text: searchQuery })
       });
+      await fetchHistories();
     }
     setSearchResults(products.slice(0, 10));
     setCurrentPage('searchResults');
   };
 
+
   // === Load user history when token changes ===
   // Load user history when token changes
-  useEffect(() => {
-    if (!token) return;
+ // Thay thế useEffect cũ:
+useEffect(() => {
+  fetchHistories();
+}, [token]);
 
-    const fetchHistories = async () => {
-      // Search history
-      try {
-        const resS = await fetch(`${API_BASE}/me/history/search`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (resS.ok) {
-          const data = await resS.json();
-          setSearchHistory(Array.isArray(data) ? data : []);
-        } else {
-          setSearchHistory([]);
-        }
-      } catch {
-        setSearchHistory([]);
-      }
-
-      // View history
-      try {
-        const resV = await fetch(`${API_BASE}/me/history/view`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (resV.ok) {
-          const data = await resV.json();
-          setViewedHistory(Array.isArray(data) ? data : []);
-        } else {
-          setViewedHistory([]);
-        }
-      } catch {
-        setViewedHistory([]);
-      }
-    };
-
-    fetchHistories();
-  }, [token]);
 
   const handleLogin = (username, password) => {
     fetch(`${API_BASE}/login`, {
