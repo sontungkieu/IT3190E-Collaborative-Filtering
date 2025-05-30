@@ -4,6 +4,9 @@ import { Search, ShoppingCart, User, Menu, ChevronRight, ChevronLeft, Star, Hear
 
 const App = () => {
   const API_BASE = `${window.location.protocol}//${window.location.hostname}:8003`;  // dynamic user-service host
+  const REC_API_BASE = `${window.location.protocol}//${window.location.hostname}:8002`; // recommendation-service
+  const PROD_API_BASE= `${window.location.protocol}//${window.location.hostname}:8001`; // product-service
+
 
   // Login / history modal states
   const [showLogin, setShowLogin] = useState(false);
@@ -26,6 +29,7 @@ const App = () => {
   const [viewedProducts, setViewedProducts] = useState([]);
   const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
   const [pageTransition, setPageTransition] = useState(false);
+  
 
 
   // Xử lý thêm vào giỏ hàng
@@ -319,128 +323,65 @@ const App = () => {
   };
   // ============= DỮ LIỆU MẪU =============
   // Dữ liệu mẫu sản phẩm - có thể thay thế bằng API hoặc dữ liệu thực tế
-  const products = [
-    { 
-      id: 1, 
-      name: 'Laptop Gaming ASUS ROG Zephyrus G14', 
-      price: 32990000, 
-      originalPrice: 35990000, 
-      image: '/api/placeholder/220/150', 
-      specs: 'AMD Ryzen 9 7940HS, RAM 16GB, SSD 1TB, RTX 4070, 14" 2K 165Hz', 
-      rating: 4.9, 
-      reviews: 73, 
-      discount: '-8%',
-      category: 'laptop',
-      brand: 'ASUS',
-      description: 'ASUS ROG Zephyrus G14 là một trong những laptop gaming mỏng nhẹ mạnh mẽ nhất hiện nay. Được trang bị CPU AMD Ryzen 9 7940HS, GPU NVIDIA GeForce RTX 4070 8GB, màn hình 14" 2K 165Hz, hỗ trợ chơi game và đồ họa chuyên nghiệp.',
-      stock: 12,
-      comments: [
-        { id: 1, user: 'nguyenvan', rating: 5, date: '15-05-2025', content: 'Máy chạy rất mượt, pin trâu, màn hình đẹp.' },
-        { id: 2, user: 'trangtran', rating: 5, date: '02-05-2025', content: 'Đáng đồng tiền, thiết kế cực đẹp và chắc chắn.' },
-      ]
-    },
-    { 
-      id: 2, 
-      name: 'PC GVN Intel i5-13400F/ VGA RTX 4060', 
-      price: 22490000, 
-      originalPrice: 23990000, 
-      image: '/api/placeholder/220/150', 
-      specs: 'i5-13400F, RTX 4060, RAM 16GB, SSD 500GB', 
-      rating: 4.8, 
-      reviews: 112, 
-      discount: '-6%',
-      category: 'pc',
-      brand: 'GVN',
-      description: 'PC GVN Gaming mang đến trải nghiệm gaming tuyệt vời với cấu hình mạnh mẽ: CPU Intel Core i5-13400F, Card đồ họa NVIDIA GeForce RTX 4060 8GB, RAM 16GB DDR4, SSD 500GB. Hỗ trợ chơi tốt các game AAA mới nhất ở mức setting cao.',
-      stock: 20,
-      comments: [
-        { id: 1, user: 'leminh', rating: 5, date: '10-04-2025', content: 'Máy chạy mát, hiệu năng tốt, chơi game rất mượt.' },
-        { id: 2, user: 'anhtu', rating: 4, date: '28-03-2025', content: 'Máy đẹp, ship nhanh, đóng gói cẩn thận.' },
-      ]
-    },
-    { 
-      id: 3, 
-      name: 'Màn hình Dahua DHI-LM25-E231 25" IPS 180Hz', 
-      price: 2190000, 
-      originalPrice: 2390000, 
-      image: '/api/placeholder/220/150', 
-      specs: '25", IPS, 180Hz, 1ms, Full HD', 
-      rating: 5.0, 
-      reviews: 6, 
-      discount: '-8%',
-      category: 'monitor',
-      brand: 'Dahua',
-      description: 'Màn hình gaming Dahua DHI-LM25-E231 với tấm nền IPS, độ phân giải Full HD, tần số quét 180Hz và thời gian phản hồi 1ms, mang đến trải nghiệm chơi game mượt mà và không bị giật lag. Thiết kế viền mỏng, chân đế chắc chắn.',
-      stock: 15,
-      comments: [
-        { id: 1, user: 'g*****89', rating: 5, date: '13-05-2025', content: 'Cực kì hài lòng vì nó thể làm được những thứ mà mình cần.' },
-        { id: 2, user: 'ph****09', rating: 5, date: '10-05-2025', content: 'Cực kì hài lòng.' },
-      ]
-    },
-    { 
-      id: 4, 
-      name: 'Chuột không dây Rapoo M21 Silent', 
-      price: 150000, 
-      originalPrice: 200000, 
-      image: '/api/placeholder/220/150', 
-      specs: 'Wireless 2.4GHz, DPI 1000, Pin AA', 
-      rating: 4.6, 
-      reviews: 89, 
-      discount: '-25%',
-      category: 'mouse',
-      brand: 'Rapoo',
-      description: 'Chuột không dây Rapoo M21 Silent với thiết kế nhỏ gọn, di chuyển êm ái không gây tiếng ồn, công nghệ không dây 2.4GHz ổn định, độ phân giải 1000 DPI, sử dụng pin AA có thể thay thế, thời lượng pin lên đến 12 tháng.',
-      stock: 50,
-      comments: [
-        { id: 1, user: 'duc123', rating: 5, date: '20-04-2025', content: 'Chuột nhỏ gọn, không gây tiếng động, rất hợp cho công việc văn phòng.' },
-        { id: 2, user: 'minh98', rating: 4, date: '15-04-2025', content: 'Sản phẩm tốt, giá hợp lý, dùng rất thích.' },
-      ]
-    },
-    { 
-      id: 5, 
-      name: 'Bàn phím cơ Akko PC75B Plus', 
-      price: 2390000, 
-      originalPrice: 2690000, 
-      image: '/api/placeholder/220/150', 
-      specs: 'Kailh Box White Switch, RGB, 75%', 
-      rating: 4.7, 
-      reviews: 156, 
-      discount: '-11%',
-      category: 'keyboard',
-      brand: 'Akko',
-      description: 'Bàn phím cơ Akko PC75B Plus với layout 75% nhỏ gọn, switch Kailh Box White có độ nảy và phản hồi tốt, đèn nền RGB 16.8 triệu màu, kết nối có dây hoặc Bluetooth 5.0, hỗ trợ hot-swap thay switch dễ dàng.',
-      stock: 18,
-      comments: [
-        { id: 1, user: 'gamerk', rating: 5, date: '05-05-2025', content: 'Phím gõ sướng tay, LED đẹp, kết nối ổn định.' },
-        { id: 2, user: 'thuylinh', rating: 4, date: '20-04-2025', content: 'Thiết kế đẹp, gõ nghe sound thích tai, đáng mua.' },
-      ]
-    },
-    { 
-      id: 6, 
-      name: 'Tai nghe HyperX Cloud Alpha', 
-      price: 1890000, 
-      originalPrice: 2290000, 
-      image: '/api/placeholder/220/150', 
-      specs: '7.1 Surround, Microphone tháo rời', 
-      rating: 4.8, 
-      reviews: 182, 
-      discount: '-17%',
-      category: 'headphone',
-      brand: 'HyperX',
-      description: 'Tai nghe gaming HyperX Cloud Alpha với âm thanh vòm 7.1, driver dual chamber mang đến âm bass mạnh mẽ và âm mid trong trẻo, mic có thể tháo rời, khung nhôm bền bỉ, đệm tai mềm mại thoải mái khi đeo lâu.',
-      stock: 25,
-      comments: [
-        { id: 1, user: 'tuanpc', rating: 5, date: '01-05-2025', content: 'Âm thanh cực kỳ tốt, đeo thoải mái, mic thu âm rõ.' },
-        { id: 2, user: 'hoangnam', rating: 5, date: '25-04-2025', content: 'Chất lượng build cao, âm thanh đỉnh, rất đáng tiền.' },
-      ]
-    },
-  ];
+  const [products, setProducts] = useState([]);
+
+  useEffect(() => {
+    (async () => {
+      const res = await fetch(`${PROD_API_BASE}/products`);
+      if (res.ok) {
+        const data = await res.json();    // đây là mảng các object metadata
+        setProducts(data);
+      } else {
+        console.error('Fetch products failed:', res.status);
+      }
+    })();
+  }, []);
+
+
+
 
   // Sản phẩm bán chạy nhất
   const bestSellers = products.slice(0, 4);
   
   // Sản phẩm gợi ý dựa trên recommendation system (giả lập)
-  const recommendedProducts = products.slice(2, 6);
+  const [recommendedProducts, setRecommendedProducts] = useState([]);
+
+  useEffect(() => {
+  console.log("🏷 products:", products);
+  console.log("🏷 recommendations will be fetched for:", loginUsername, "token?", !!token);
+  if (!token || products.length === 0) {
+    setRecommendedProducts([]);
+    return;
+  }
+
+  (async () => {
+    try {
+      const res = await fetch(`${REC_API_BASE}/recommend`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ user_profile: loginUsername })
+      });
+      const body = await res.json();
+      console.log("💡 recommend API returned:", body);
+      if (res.ok) {
+        const { recommendations } = body;
+        const recProds = products.filter(p =>
+          recommendations.includes(p.title)
+        );
+        console.log("✔️ matched recProds:", recProds);
+        setRecommendedProducts(recProds);
+      } else {
+        console.error('Recommend API error', body);
+      }
+    } catch (err) {
+      console.error('Fetch recommendations failed', err);
+    }
+  })();
+}, [token, loginUsername, products]);
+
 
   // ============= COMPONENTS =============
 
@@ -602,56 +543,25 @@ const App = () => {
 
   // Product card component
   const ProductCard = ({ product }) => (
-    <div 
-      className="bg-white rounded-lg shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer"
-      onClick={() => viewProductDetail(product)}
-    >
-      <div className="relative">
-        <img src={product.image} alt={product.name} className="w-full h-40 object-cover transition-transform duration-300 hover:scale-105" />
-        {product.discount && (
-          <div className="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">
-            {product.discount}
-          </div>
-        )}
-        <button 
-          className="absolute top-2 right-2 bg-white p-1 rounded-full shadow-md hover:bg-gray-100 transform transition-transform hover:scale-110"
-          onClick={(e) => {
-            e.stopPropagation();
-            // Thêm vào yêu thích (có thể bổ sung tính năng sau)
-          }}
-        >
-          <Heart size={16} className="text-gray-500 hover:text-red-500" />
-        </button>
-      </div>
-      <div className="p-4">
-        <h3 className="text-sm font-medium text-gray-900 mb-1 hover:text-blue-600 line-clamp-2 h-10">
-          {product.name}
-        </h3>
-        <p className="text-xs text-gray-500 mb-2">{product.specs}</p>
-        <div className="flex items-center mb-2">
-          <Star size={14} className="text-yellow-400" />
-          <span className="text-xs text-gray-600 ml-1">{product.rating} ({product.reviews})</span>
-        </div>
-        <div className="flex flex-col">
-          <div className="text-xs text-gray-500 line-through">
-            {product.originalPrice.toLocaleString()}₫
-          </div>
-          <div className="text-lg font-bold text-red-600">
-            {product.price.toLocaleString()}₫
-          </div>
-        </div>
-        <button 
-          className="mt-3 w-full bg-red-600 hover:bg-red-700 text-white py-1.5 px-3 rounded-md text-sm font-medium transition-all duration-300 hover:shadow-md transform hover:scale-[1.02] active:scale-95"
-          onClick={(e) => {
-            e.stopPropagation();
-            addToCart(product);
-          }}
-        >
-          Thêm vào giỏ
-        </button>
-      </div>
+  <div
+    className="bg-white rounded-lg shadow-md cursor-pointer"
+    onClick={() => viewProductDetail(product)}
+  >
+    <img
+      src={product.imUrl}
+      alt={product.title}
+      className="w-full h-40 object-cover rounded-t"
+    />
+    <div className="p-4">
+      <h3 className="font-medium text-gray-900 mb-1">{product.title}</h3>
+      <p className="text-sm text-gray-500 mb-2">
+        {product.categories?.join(' > ')}
+      </p>
+      <div className="font-bold text-red-600">{product.price}₫</div>
     </div>
+  </div>
   );
+
 
   // ============= PAGE COMPONENTS =============
 
@@ -702,28 +612,26 @@ const App = () => {
 
       {/* Sản phẩm được gợi ý cho bạn */}
       <div className="container mx-auto px-4 py-6">
-        <div className="bg-white rounded-lg p-4 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold">Gợi ý cho bạn</h2>
-            <div className="flex items-center space-x-2">
-              <button className="text-sm border border-gray-300 rounded-md px-3 py-1 hover:bg-gray-100">
-                Phổ biến
-              </button>
-              <button className="text-sm border border-gray-300 rounded-md px-3 py-1 hover:bg-gray-100">
-                Mới nhất
-              </button>
-              <button className="text-sm border border-gray-300 rounded-md px-3 py-1 bg-blue-600 text-white hover:bg-blue-700">
-                Phù hợp nhất
-              </button>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {recommendedProducts.map(product => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+      <div className="bg-white rounded-lg p-4 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold">Gợi ý cho bạn</h2>
+          <div className="flex items-center space-x-2">
+            <button className="text-sm border border-gray-300 rounded-md px-3 py-1 hover:bg-gray-100">Phổ biến</button>
+            <button className="text-sm border border-gray-300 rounded-md px-3 py-1 hover:bg-gray-100">Mới nhất</button>
+            <button className="text-sm border border-gray-300 rounded-md px-3 py-1 bg-blue-600 text-white hover:bg-blue-700">Phù hợp nhất</button>
           </div>
         </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {recommendedProducts.length > 0 ? (
+            recommendedProducts.map(product => (
+              <ProductCard key={product.id} product={product} />
+            ))
+          ) : (
+            <p className="text-gray-500">Chưa có gợi ý. Hãy tìm hoặc xem thêm sản phẩm.</p>
+          )}
+        </div>
       </div>
+    </div>
 
       {/* Sản phẩm bán chạy */}
       <div className="container mx-auto px-4 py-6">
@@ -745,141 +653,163 @@ const App = () => {
   );
 
   // Product detail component
-  const ProductDetail = ({ product }) => (
-    <div className="min-h-screen bg-gray-100 pb-8">
-      <div className="container mx-auto px-4 py-4">
-        <div className="bg-white rounded-lg p-4">
-          {/* Product Info */}
-          <div className="flex flex-col md:flex-row">
-            {/* Product Images */}
-            <div className="md:w-2/5 p-4">
-              <div className="mb-4">
-                <img src={product.image} alt={product.name} className="w-full object-cover rounded-lg" />
-              </div>
-              <div className="flex space-x-2 overflow-auto">
-                <img src={product.image} alt={product.name} className="w-20 h-20 object-cover rounded border-2 border-red-500" />
-                <img src="/api/placeholder/80/80" alt="alt view" className="w-20 h-20 object-cover rounded border hover:border-red-500" />
-                <img src="/api/placeholder/80/80" alt="alt view" className="w-20 h-20 object-cover rounded border hover:border-red-500" />
-              </div>
-            </div>
-            
-            {/* Product Details */}
-            <div className="md:w-3/5 p-4">
-              <h1 className="text-2xl font-bold mb-2">{product.name}</h1>
-              
-              <div className="flex items-center mb-4">
-                <div className="flex items-center">
-                  <Star size={18} className="text-yellow-400" />
-                  <span className="ml-1 text-gray-700">{product.rating}</span>
-                </div>
-                <span className="mx-2 text-gray-400">|</span>
-                <span className="text-gray-700">{product.reviews} đánh giá</span>
-                <span className="mx-2 text-gray-400">|</span>
-                <span className="text-green-600">Còn hàng ({product.stock})</span>
-              </div>
-              
-              <div className="mb-4">
-                <div className="text-3xl font-bold text-red-600">{product.price.toLocaleString()}₫</div>
-                <div className="text-gray-500 line-through">{product.originalPrice.toLocaleString()}₫</div>
-                <div className="text-green-600 font-medium">Tiết kiệm: {(product.originalPrice - product.price).toLocaleString()}₫ ({product.discount})</div>
-              </div>
-              
-              <div className="mb-6">
-                <h2 className="font-semibold mb-2">Thông số kỹ thuật:</h2>
-                <p className="text-gray-700">{product.specs}</p>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
-                <button 
-                  className="bg-red-600 hover:bg-red-700 text-white py-3 px-6 rounded-md font-bold flex-1 flex items-center justify-center transition-all duration-300 hover:shadow-lg transform hover:scale-[1.02] active:scale-95"
-                  onClick={() => addToCart(product)}
-                >
-                  MUA NGAY
-                </button>
-                <button 
-                  className="border border-red-600 text-red-600 hover:bg-red-50 py-3 px-6 rounded-md font-bold flex-1 flex items-center justify-center transition-all duration-300 hover:shadow transform hover:scale-[1.02] active:scale-95"
-                  onClick={() => addToCart(product)}
-                >
-                  THÊM VÀO GIỎ
-                </button>
-              </div>
-            </div>
-          </div>
+  // App.jsx — within your Dashboard/App component file
 
-          {/* Product Description */}
-          <div className="mt-8 p-4">
-            <h2 className="text-xl font-bold mb-4">Mô tả sản phẩm</h2>
-            <div className="text-gray-700">
-              <p>{product.description}</p>
-            </div>
-          </div>
+const ProductDetail = ({ product }) => (
+  <div className="min-h-screen bg-gray-100 pb-8">
+    <div className="container mx-auto px-4 py-4">
+      <div className="bg-white rounded-lg p-4">
 
-          {/* Product Comments/Reviews */}
-          <div className="mt-8 p-4">
-            <h2 className="text-xl font-bold mb-4">Đánh giá & Nhận xét ({product.comments.length})</h2>
-            <div className="space-y-4">
-              {product.comments.map(comment => (
-                <div key={comment.id} className="border-b pb-4">
-                  <div className="flex items-center mb-2">
-                    <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-gray-600 font-bold">
-                      {comment.user.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="ml-3">
-                      <div className="font-medium">{comment.user}</div>
-                      <div className="text-gray-500 text-sm">{comment.date}</div>
-                    </div>
-                  </div>
-                  <div className="flex mb-2">
-                    {[...Array(5)].map((_, i) => (
-                      <Star 
-                        key={i} 
-                        size={16} 
-                        className={i < comment.rating ? "text-yellow-400" : "text-gray-300"} 
-                        fill={i < comment.rating ? "#FBBF24" : "#D1D5DB"}
-                      />
-                    ))}
-                  </div>
-                  <p className="text-gray-700">{comment.content}</p>
-                </div>
+        {/* Breadcrumb */}
+        <Breadcrumb product={product} />
+
+        {/* Product Info */}
+        <div className="flex flex-col md:flex-row">
+          {/* Images */}
+          <div className="md:w-2/5 p-4">
+            <div className="mb-4">
+              <img
+                src={product.imUrl}
+                alt={product.title}
+                className="w-full object-cover rounded-lg"
+              />
+            </div>
+            <div className="flex space-x-2 overflow-auto">
+              {/* nếu có thêm image URLs trong metadata */}
+              {product.additionalImages?.map((url, i) => (
+                <img
+                  key={i}
+                  src={url}
+                  alt={`${product.title} view ${i}`}
+                  className="w-20 h-20 object-cover rounded border hover:border-red-500 cursor-pointer"
+                />
               ))}
             </div>
-            
-            {/* Add Review Form (Simplified) */}
-            <div className="mt-6 bg-gray-50 p-4 rounded-lg">
-              <h3 className="font-bold mb-2">Viết đánh giá của bạn</h3>
-              <div className="flex mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star 
-                    key={i} 
-                    size={24} 
-                    className="text-gray-300 cursor-pointer hover:text-yellow-400" 
-                  />
-                ))}
+          </div>
+
+          {/* Details */}
+          <div className="md:w-3/5 p-4">
+            <h1 className="text-2xl font-bold mb-2">{product.title}</h1>
+
+            <div className="flex items-center mb-4">
+              <div className="flex items-center">
+                <Star size={18} className="text-yellow-400" />
+                <span className="ml-1 text-gray-700">
+                  {product.rating ?? "–"} ({product.reviews ?? "–"})
+                </span>
               </div>
-              <textarea 
-                className="w-full border rounded-md p-3 mb-3" 
-                placeholder="Chia sẻ trải nghiệm của bạn với sản phẩm này..."
-                rows="3"
-              ></textarea>
-              <button className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-all duration-300 hover:shadow-md transform hover:scale-[1.02] active:scale-95">
-                Gửi đánh giá
+              <span className="mx-2 text-gray-400">|</span>
+              <span className="text-green-600">
+                {product.stock
+                  ? `Còn hàng (${product.stock})`
+                  : "Hết hàng"}
+              </span>
+            </div>
+
+            <div className="mb-4">
+              <div className="text-3xl font-bold text-red-600">
+                {product.price?.toLocaleString() ?? "–"}₫
+              </div>
+              {product.originalPrice && (
+                <div className="text-gray-500 line-through">
+                  {product.originalPrice.toLocaleString()}₫
+                </div>
+              )}
+              {product.discount && (
+                <div className="text-green-600 font-medium">
+                  Tiết kiệm: {product.discount}
+                </div>
+              )}
+            </div>
+
+            <div className="mb-6">
+              <h2 className="font-semibold mb-2">Thông số kỹ thuật:</h2>
+              <p className="text-gray-700">
+                {product.description ?? "Không có mô tả."}
+              </p>
+              {product.categories && (
+                <p className="mt-2 text-sm text-gray-500">
+                  Danh mục: {product.categories.join(" > ")}
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+              <button
+                className="bg-red-600 hover:bg-red-700 text-white py-3 px-6 rounded-md font-bold flex-1 flex items-center justify-center transition-all duration-300 hover:shadow-lg transform hover:scale-[1.02] active:scale-95"
+                onClick={() => addToCart(product)}
+              >
+                MUA NGAY
+              </button>
+              <button
+                className="border border-red-600 text-red-600 hover:bg-red-50 py-3 px-6 rounded-md font-bold flex-1 flex items-center justify-center transition-all duration-300 hover:shadow transform hover:scale-[1.02] active:scale-95"
+                onClick={() => addToCart(product)}
+              >
+                THÊM VÀO GIỎ
               </button>
             </div>
           </div>
+        </div>
 
-          {/* Recommended Products (Similar) */}
-          <div className="mt-8 p-4">
-            <h2 className="text-xl font-bold mb-4">Sản phẩm tương tự</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {recommendedProducts.slice(0, 4).map(product => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
+        {/* Product Description */}
+        <div className="mt-8 p-4">
+          <h2 className="text-xl font-bold mb-4">Mô tả sản phẩm</h2>
+          <div className="text-gray-700">
+            <p>{product.longDescription ?? product.description ?? ""}</p>
+          </div>
+        </div>
+
+        {/* Product Comments/Reviews */}
+        <div className="mt-8 p-4">
+          <h2 className="text-xl font-bold mb-4">
+            Đánh giá & Nhận xét ({product.comments?.length ?? 0})
+          </h2>
+          <div className="space-y-4">
+            {product.comments?.map((comment) => (
+              <div key={comment.id} className="border-b pb-4">
+                <div className="flex items-center mb-2">
+                  <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-gray-600 font-bold">
+                    {comment.user.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="ml-3">
+                    <div className="font-medium">{comment.user}</div>
+                    <div className="text-gray-500 text-sm">{comment.date}</div>
+                  </div>
+                </div>
+                <div className="flex mb-2">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      size={16}
+                      className={
+                        i < comment.rating
+                          ? "text-yellow-400"
+                          : "text-gray-300"
+                      }
+                      fill={i < comment.rating ? "#FBBF24" : "#D1D5DB"}
+                    />
+                  ))}
+                </div>
+                <p className="text-gray-700">{comment.content}</p>
+              </div>
+            )) || <p className="text-gray-500">Chưa có đánh giá.</p>}
+          </div>
+        </div>
+
+        {/* Recommended Products (Similar) */}
+        <div className="mt-8 p-4">
+          <h2 className="text-xl font-bold mb-4">Sản phẩm tương tự</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {recommendedProducts.slice(0, 4).map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
           </div>
         </div>
       </div>
     </div>
-  );
+  </div>
+);
+
 
   // Cart component
   const Cart = () => (
@@ -1053,7 +983,7 @@ const App = () => {
   );
 
   // Order history component
-  const OrderHistory = () => (
+  const OrderHistory = () => (+
     <div className="min-h-screen bg-gray-100 pb-8">
       <div className="container mx-auto px-4 py-4">
         <div className="bg-white rounded-lg p-4">
