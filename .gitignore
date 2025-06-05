@@ -34,7 +34,7 @@ MANIFEST
 
 # Installer logs
 pip-log.txt
-pip-delete-this-directory.txt
+pip-delete-this-direcoutput_embeddings.jsontory.txt
 
 # Unit test / coverage reports
 htmlcov/
@@ -174,3 +174,4 @@ cython_debug/
 .pypirc
 
 /data/
+output_embeddings.json

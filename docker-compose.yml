@@ -13,6 +13,8 @@ services:
     build: ./services/recommendation
     ports:
       - "8002:8002"
+    volumes:
+      - ./data/output_embeddings.json:/app/output_embeddings.json:ro
   user-service:
     build: ./services/user
     ports:

@@ -374,20 +374,34 @@ useEffect(() => {
       const body = await res.json();
       console.log("💡 recommend API returned:", body);
       if (res.ok) {
-        const { recommendations } = body;
-        const recProds = products.filter(p =>
-          recommendations.includes(p.title)
-        );
-        console.log("✔️ matched recProds:", recProds);
-        setRecommendedProducts(recProds);
-      } else {
-        console.error('Recommend API error', body);
-      }
+  const { recommendations, search_history, view_history } = body;
+
+  // 1) Cập nhật recommendedProducts như trước
+  const lowerRecs = recommendations.map(r =>
+    typeof r === "string" ? r.toLowerCase().trim() : ""
+  );
+  const recProds = products.filter(p => {
+    if (!p.title) return false;
+    const titleLower = p.title.toLowerCase().trim();
+    return lowerRecs.some(recText => recText.includes(titleLower));
+  });
+  setRecommendedProducts(recProds);
+
+  // 2) CẬP NHẬT LẠI SEARCH & VIEW HISTORY dựa vào response của /recommend
+  setSearchHistory(Array.isArray(search_history) ? search_history : []);
+  setViewedHistory(Array.isArray(view_history) ? view_history : []);
+} else {
+  // Nếu lỗi: reset recommendedProducts và không đổi lịch sử
+  setRecommendedProducts([]);
+}
     } catch (err) {
       console.error('Fetch recommendations failed', err);
+      setRecommendedProducts([]);
     }
   })();
 }, [token, loginUsername, products]);
+
+
 
 
   // ============= COMPONENTS =============
@@ -592,8 +606,8 @@ useEffect(() => {
             </div>
             <div className="md:w-1/2">
               <img 
-                src="/api/placeholder/600/300" 
-                alt="Banner" 
+                // src="/api/placeholder/600/300" 
+                // alt="Banner" 
                 className="w-full object-cover"
               />
             </div>

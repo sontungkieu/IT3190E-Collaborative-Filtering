@@ -1,5 +1,6 @@
 import sqlite3
 import ast
+import json
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -20,8 +21,33 @@ app.add_middleware(
 db_path = Path("db/reviews.db")
 meta_path = Path("meta_Electronics.csv")  # Each line is a Python dict or JSON string
 
-# ASIN -> title mapping
-metadata_map: Dict[str, Dict[str, any]] = {}
+# ASIN -> metadata mapping (including title)
+metadata_map: Dict[str, Dict[str, Any]] = {}
+
+# Define a blacklist of terms: nếu title chứa bất kỳ từ nào trong list này (case-insensitive),
+# sẽ không xuất sản phẩm đó trong response.
+blacklist =  ["lumiquest", "Compatible", "14&quot;", "ColorMunki", "Cleaning", "Timer", 
+              "Shoe", "slim case", "Livescribe", "COVER", "Android 4.0", "Purple", "Cinema", 
+              "Earphone", "computer lock", "Decals", "Projector", "VGA", "530T", "AAA", "Lithium", 
+              "Remote Control", "batter", "Antec One", "Picture", "case","Pctv" ,"noble", "arm", 
+              "nook", "olympus", "bushnell", "california", "external", "truck","sawyer", "3g", "kindle",
+              "db9", "yamakasi", "mygica", "bargain", "moleskine", "grade", "maxell", "ge", "palmone", 
+              "rca", "outdoor", "streambot", "aaa", "streambot", "lizone", "wpa4220kit", "allreli", 
+              "iclever", "34w", "inateck&reg;", "saicoo&trade;", "sharkk&reg;", "yens&reg;", 
+              "taotronics&reg;", "bolse&reg;", "jetech&reg;", "amp", "flash&trade;",
+                 "aerb&reg;", "supernight&reg;", "hypario&reg;", "mnxo&reg;", "digiyes&reg;", 
+                 "bearextender", "dbpower", "avatar", "cable", "microphone", "radio", "ipod", 
+                 "82mm", "dvd", "cd", "targus", "apc", "memorex", "diamond", "palm", "Strip", 
+                 "Mp3", "EM60", "phone","Strip", "Mp3", "EM60", "phone", "Speaker", "StarTech.com", "Kensington",
+            "Headset", "OtterBox", "Speaker", "Cleaner", "eReader", "DVI", 
+            "Slinglink", "Pogoplug","Patchbay","Protection","Bag", "NETWORK", "Keyspan", 
+            "Multimedia", "Mountable", "150m", 
+            "Crumpler", "OmniMount", "MartinLogan", "pack", "clik", "rouge", "Vanguard","tumi", "tv",
+            "hde", "ibuy", "sound","quis","++","wacom","dock","11g","plug","brunton", "tiny", "s75c",]
+
+  # Thêm các từ/cụm từ bạn muốn lọc ở đây
+blacklist_lower = [term.lower() for term in blacklist]
+
 
 @app.on_event("startup")
 def load_metadata():
@@ -48,6 +74,7 @@ def load_metadata():
             count += 1
     print(f"✅ Loaded metadata for {count} products from {meta_path}")
 
+
 @app.get("/products", response_model=List[Dict[str, Any]])
 def list_products():
     if not db_path.exists():
@@ -67,9 +94,25 @@ def list_products():
 
     products = []
     for pid in rows:
-        prod = metadata_map.get(pid)
-        if not prod:
-            # fallback simple object
-            prod = {"asin": pid}
-        products.append(prod)
+        prod_meta = metadata_map.get(pid)
+        if prod_meta:
+            title = prod_meta.get("title", "")
+            title_lower = title.lower()
+            # Kiểm tra xem title có chứa term nào thuộc blacklist không
+            skip = False
+            for term in blacklist_lower:
+                if term in title_lower:
+                    skip = True
+                    break
+            if skip:
+                continue  # Bỏ qua sản phẩm này nếu title chứa từ cấm
+            
+            products.append(prod_meta)
+        else:
+            # Nếu không có metadata, fallback chỉ chứa ASIN (không có title để kiểm tra)
+            products.append({"asin": pid})
+
+    if not products:
+        raise HTTPException(status_code=404, detail="No products found after applying blacklist filter.")
+
     return products
