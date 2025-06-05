@@ -71,17 +71,17 @@ def export_text(t1,t2,use_t2= False):
     """
     """
     res = "user's interest:\n"
-    for u in t1:
+    for id,u in enumerate(t1):
         t = u.get("text", "")
         if t!="":
             t += " "
-        res += t*10 + "\n"
+        res += t*max(0,10-id*2) + "\n"
     if use_t2:
-        for u in t2:
+        for id,u in enumerate(t2):
             t = u.get("text", "")
             if t!="":
                 t += " "
-            res += t*10 + "\n"
+            res += t*max(0,10-id*2) + "\n"
     return res
 
 import json
