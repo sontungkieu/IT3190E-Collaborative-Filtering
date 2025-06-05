@@ -175,3 +175,5 @@ cython_debug/
 
 /data/
 output_embeddings.json
+output.json
+str_data.json
