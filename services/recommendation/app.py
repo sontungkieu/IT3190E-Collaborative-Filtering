@@ -1,9 +1,11 @@
 # services/recommendation/app.py
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import requests
+from typing import Dict, Any, List
+
 
 app = FastAPI(title="Recommendation Service")
 
@@ -18,6 +20,10 @@ app.add_middleware(
 
 class RecRequest(BaseModel):
     user_profile: str
+
+class SearchRequest(BaseModel):
+    query: str
+
 
 # === CẤU HÌNH ===
 # Thay YOUR_NGROK_URL bằng URL ngrok bạn vừa in ra ở Kaggle, ví dụ:
@@ -139,6 +145,9 @@ def load_embeddings_from_json(
             "Crumpler", "OmniMount", "MartinLogan", "pack", "clik", "rouge", 
             "Vanguard","tumi", "tv",
             "hde", "ibuy", "sound","quis","++","wacom","dock","11g","plug","brunton", "tiny", "s75c",
+            "mercury", "contour", "cobra", "jiggler", "HDMI", "menotek", "riteav", "sumd", "rogue","att","savvy","lacie","escort","golf",
+            "wifi","duo","tomtom","silicon","mirro","rf","labeler","cooler",
+            "jump","mount","ematic","fidelity","skin",
         ]
     # Chuẩn hóa blacklist về lowercase để so sánh không phân biệt hoa/thường
     blacklist_lower = [term.lower() for term in blacklist]
@@ -316,3 +325,38 @@ def recommend_endpoint(req: RecRequest):
     resp = get_recommendations("user")
     print(f"Recommendations for {req.user_profile}: completed")
     return resp
+
+# =================== PHẦN MỚI: /search endpoint ====================
+@app.post("/search")
+def search_endpoint(req: SearchRequest) -> Dict[str, List[str]]:
+    """
+    Nhận JSON: { "query": "<chuỗi search>" }
+    1) Tính embedding cho req.query bằng embed_text
+    2) Load embeddings từ file (cũng dùng load_embeddings_from_json)
+    3) Dùng find_top_k_texts(query_embedding, ...) để lấy 20 'texts' gần nhất
+    4) Trả về JSON: { "search_results": [ list of text ] }
+    """
+
+    query_text = req.query
+    if not query_text or not query_text.strip():
+        return {"search_results": []}
+    query_text = (query_text.strip()+" ")*10
+    # 1) Tính embedding cho query
+    try:
+        query_embedding = embed_text(query_text)  # numpy array shape (D,)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Cannot embed query: {e}")
+
+    # 2) Load embeddings
+    EMBED_PATH = "output_embeddings.json"
+    all_texts, all_embeds, all_norms = load_embeddings_from_json(EMBED_PATH)
+
+    if all_embeds.size == 0:
+        return {"search_results": []}
+
+    # 3) Tìm top-20 closest texts
+    topk = 20
+    search_results = find_top_k_texts(query_embedding, all_texts, all_embeds, all_norms, k=topk)
+
+    # 4) Trả về array of strings
+    return {"search_results": search_results}

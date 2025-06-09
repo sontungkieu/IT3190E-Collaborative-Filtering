@@ -43,7 +43,11 @@ blacklist =  ["lumiquest", "Compatible", "14&quot;", "ColorMunki", "Cleaning", "
             "Slinglink", "Pogoplug","Patchbay","Protection","Bag", "NETWORK", "Keyspan", 
             "Multimedia", "Mountable", "150m", 
             "Crumpler", "OmniMount", "MartinLogan", "pack", "clik", "rouge", "Vanguard","tumi", "tv",
-            "hde", "ibuy", "sound","quis","++","wacom","dock","11g","plug","brunton", "tiny", "s75c",]
+            "hde", "ibuy", "sound","quis","++","wacom","dock","11g","plug","brunton", "tiny", "s75c",
+            "mercury", "contour", "cobra", "jiggler", "HDMI", "menotek", "riteav", "sumd", "rogue","att","savvy","lacie","escort","golf",
+            "wifi","duo","tomtom","silicon","mirro","rf","labeler","cooler",
+            "jump","mount","ematic","fidelity","skin",
+            ]
 
   # Thêm các từ/cụm từ bạn muốn lọc ở đây
 blacklist_lower = [term.lower() for term in blacklist]
