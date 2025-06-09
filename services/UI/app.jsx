@@ -12,6 +12,10 @@ const App = () => {
   const [showLogin, setShowLogin] = useState(false);
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  const [userProfile, setUserProfile] = useState(
+    () => localStorage.getItem("userProfile") || ""
+  );
+
   const [searchHistory, setSearchHistory] = useState([]);
   const [viewedHistory, setViewedHistory] = useState([]);
 
@@ -32,26 +36,59 @@ const App = () => {
   
 
   const fetchHistories = async () => {
-  if (!token) return;
+  if (!token || !userProfile) return;
+
+  // ----- Fetch Search History -----
   try {
     const resS = await fetch(`${API_BASE}/me/history/search`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { "Authorization": `Bearer ${token}` }
     });
+
+    if (resS.status === 401) {
+      console.warn("Token không hợp lệ hoặc hết hạn. Đăng xuất tự động.");
+      localStorage.removeItem("token");
+      setToken("");
+      setUserProfile("");
+      setSearchHistory([]);
+      setViewedHistory([]);
+      setShowLogin(true);
+      return;
+    }
+
     const dataS = resS.ok ? await resS.json() : [];
     setSearchHistory(Array.isArray(dataS) ? dataS : []);
-  } catch {
+  } catch (e) {
+    console.error("Lỗi khi fetch search history:", e);
     setSearchHistory([]);
   }
+
+  // ----- Fetch View History -----
   try {
     const resV = await fetch(`${API_BASE}/me/history/view`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { "Authorization": `Bearer ${token}` }
     });
+
+    if (resV.status === 401) {
+      console.warn("Token không hợp lệ hoặc hết hạn. Đăng xuất tự động.");
+      localStorage.removeItem("token");
+      setToken("");
+      setUserProfile("");
+      setSearchHistory([]);
+      setViewedHistory([]);
+      setShowLogin(true);
+      return;
+    }
+
     const dataV = resV.ok ? await resV.json() : [];
     setViewedHistory(Array.isArray(dataV) ? dataV : []);
-  } catch {
+  } catch (e) {
+    console.error("Lỗi khi fetch view history:", e);
     setViewedHistory([]);
   }
 };
+
+
+
 
 
   // Xử lý thêm vào giỏ hàng
@@ -132,24 +169,41 @@ const App = () => {
 
   // Xử lý xem chi tiết sản phẩm
   const viewProductDetail = async (product) => {
-    setSelectedProduct(product);
-    if (!viewedProducts.find(item => item.id === product.id)) {
-      setViewedProducts([product, ...viewedProducts.slice(0, 3)]);
-    }
-    if (token) {
-      await fetch(`${API_BASE}/me/history/view`, {
+  setSelectedProduct(product);
+  if (!viewedProducts.find(item => item.id === product.id)) {
+    setViewedProducts([product, ...viewedProducts.slice(0, 3)]);
+  }
+
+  if (token && userProfile) {
+    try {
+      const res = await fetch(`${API_BASE}/me/history/view`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ text: product.title /* hoặc product.name */ })
+        body: JSON.stringify({ text: product.title })
       });
-      await fetchHistories();
-    }
 
-    changePage('product', product);
-  };
+      if (res.status === 401) {
+        console.warn("Token không hợp lệ khi lưu view history. Đăng xuất.");
+        localStorage.removeItem("token");
+        setToken("");
+        setUserProfile("");
+        setSearchHistory([]);
+        setViewedHistory([]);
+        setShowLogin(true);
+      } else {
+        await fetchHistories();
+      }
+    } catch (e) {
+      console.error("Save view history failed", e);
+    }
+  }
+
+  changePage('product', product);
+};
+
 
 
   // Xử lý xóa sản phẩm khỏi giỏ hàng
@@ -186,21 +240,82 @@ const App = () => {
 
   // handle search and record history
   // Fetch and record search history
+    // ==== Thêm/sửa hàm handleSearch ====
   const handleSearch = async () => {
-    if (token) {
-      await fetch(`${API_BASE}/me/history/search`, {
-        method: 'POST',
+    // 1) Gọi rec-service /search
+    try {
+     // Nếu trước đây bạn gọi local cứng: setSearchResults(products.slice(0,10))
+     // Thì giờ bỏ hết, thay bằng call API:
+     const matched = products.slice(0, 10);
+     setSearchResults(matched);
+     const res = await fetch(`${REC_API_BASE}/search`, {
+       method: "POST",
+       headers: {
+         "Content-Type": "application/json",
+        // Nếu /search không require token thì có thể bỏ dòng sau, 
+         // nhưng để cho nhất quán, ta vẫn gởi token để rec-service kiểm soát
+         "Authorization": `Bearer ${token}`
+       },
+       body: JSON.stringify({ query: searchQuery })
+     });
+     const body = await res.json();
+     console.log("🔍 search API returned:", body);
+
+     if (res.ok) {
+       const { search_results } = body; // mảng string
+
+       // So khớp với products (dựa vào p.title)
+       const lowerResults = search_results.map(r =>
+         typeof r === "string" ? r.toLowerCase().trim() : ""
+       );
+       const matched = products.filter(p => {
+         if (!p.title) return false;
+         const titleLower = p.title.toLowerCase().trim();
+         return lowerResults.some(recText => recText.includes(titleLower));
+       });
+       setSearchResults(matched);
+     } else {
+       console.error("Search API error", body);
+       setSearchResults([]);
+     }
+    } catch (err) {
+      console.error("Fetch search failed", err);
+      setSearchResults([]);
+    }
+
+    // 2) Lưu vào user-service history/search nếu đã login
+    // ----- Lưu vào user-service history/search -----
+  if (token && userProfile) {
+    try {
+      const res = await fetch(`${API_BASE}/me/history/search`, {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({ text: searchQuery })
       });
-      await fetchHistories();
+
+      if (res.status === 401) {
+        console.warn("Token không hợp lệ khi lưu search history. Đăng xuất.");
+        localStorage.removeItem("token");
+        setToken("");
+        setUserProfile("");
+        setSearchHistory([]);
+        setViewedHistory([]);
+        setShowLogin(true);
+      } else {
+        fetchHistories();
+      }
+    } catch (e) {
+      console.error("Save search history failed", e);
     }
-    setSearchResults(products.slice(0, 10));
-    setCurrentPage('searchResults');
-  };
+  }
+
+  setCurrentPage("searchResults");
+};
+
+
 
 
   // === Load user history when token changes ===
@@ -213,29 +328,47 @@ useEffect(() => {
 
   const handleLogin = (username, password) => {
     fetch(`${API_BASE}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({ username, password })
     })
-    .then(res => res.json())
-    .then(data => {
-      if (data.access_token) {
-        localStorage.setItem('token', data.access_token);
-        setToken(data.access_token);
-        setShowLogin(false);
-      } else {
-        console.error('Login failed');
-      }
-    });
+      .then(res => res.json())
+      .then(data => {
+        if (data.access_token) {
+          localStorage.setItem("token", data.access_token);
+          setToken(data.access_token);
+          // Lưu cả userProfile vào localStorage để reload không mất
+          localStorage.setItem("userProfile", username);
+
+          setUserProfile(username);
+          setShowLogin(false);
+        } else {
+          console.error("Login failed");
+        }
+      })
+      .catch(err => {
+        console.error("Login request failed", err);
+      });
   };
+
 
   // Khi click icon User: clear token và open login modal
-  const handleUserIconClick = () => {
-    localStorage.removeItem('token');
-    setToken('');
-    setShowLogin(true);
-  };
+    const handleUserIconClick = () => {
+    // Nếu đã login (token khác rỗng), thì logout
+    if (token) {
+      localStorage.removeItem("token");
+      setToken("");
+     setUserProfile("");
+     localStorage.removeItem("userProfile");
 
+      setSearchHistory([]);
+      setViewedHistory([]);
+      setShowLogin(true);
+    } else {
+      // Nếu chưa login, chỉ mở modal login
+      setShowLogin(true);
+    }
+  };
 
 
  // Render login/history modal
@@ -353,53 +486,103 @@ useEffect(() => {
   // Sản phẩm gợi ý dựa trên recommendation system (giả lập)
   const [recommendedProducts, setRecommendedProducts] = useState([]);
 
+    // ===== XỬ LÝ SEARCH: gọi rec-service /search =====
+  
+
   useEffect(() => {
-  console.log("🏷 products:", products);
-  console.log("🏷 recommendations will be fetched for:", loginUsername, "token?", !!token);
-  if (!token || products.length === 0) {
+    console.log("[useEffect-recommend] token:", token);
+ console.log("[useEffect-recommend] userProfile:", userProfile);
+ console.log("[useEffect-recommend] products.length:", products.length);
+   if (!token) {
+    console.log("[useEffect-recommend] Bỏ qua vì chưa có token");
+    setRecommendedProducts([]);
+    return;
+  }
+
+  // 2. Kiểm tra userProfile
+  if (!userProfile) {
+    console.log("[useEffect-recommend] Bỏ qua vì userProfile rỗng");
+    setRecommendedProducts([]);
+    return;
+  }
+
+  // 3. Kiểm tra products đã load chưa
+  if (products.length === 0) {
+    console.log("[useEffect-recommend] Bỏ qua vì products.length === 0 (chưa load xong)");
+    setRecommendedProducts([]);
+    return;
+  }
+
+  // Nếu đủ cả 3 điều kiện trên, mới gọi /recommend
+  console.log(
+    "[useEffect-recommend] Tất cả điều kiện OK → Gọi API /recommend",
+    { token, userProfile, productsCount: products.length }
+  );
+
+  if (!token || !userProfile)  {
+    console.log("[useEffect-recommend] Bỏ qua vì điều kiện không đủ");
+
     setRecommendedProducts([]);
     return;
   }
 
   (async () => {
+    console.log("[useEffect-recommend] Gọi API /recommend với", { user_profile: userProfile });
+
+
     try {
       const res = await fetch(`${REC_API_BASE}/recommend`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify({ user_profile: loginUsername })
+        body: JSON.stringify({ user_profile: userProfile })
       });
+
+      console.log("[useEffect-recommend] HTTP status:", res.status);
+
+      if (res.status === 401) {
+        console.warn("Token không hợp lệ khi gọi recommend. Đăng xuất.");
+        localStorage.removeItem("token");
+        setToken("");
+        setUserProfile("");
+        setSearchHistory([]);
+        setViewedHistory([]);
+        setRecommendedProducts([]);
+        setShowLogin(true);
+        return;
+      }
+
       const body = await res.json();
-      console.log("💡 recommend API returned:", body);
+      console.log("[useEffect-recommend] Response body:", body);
+
       if (res.ok) {
-  const { recommendations, search_history, view_history } = body;
+        const { recommendations, search_history, view_history } = body;
 
-  // 1) Cập nhật recommendedProducts như trước
-  const lowerRecs = recommendations.map(r =>
-    typeof r === "string" ? r.toLowerCase().trim() : ""
-  );
-  const recProds = products.filter(p => {
-    if (!p.title) return false;
-    const titleLower = p.title.toLowerCase().trim();
-    return lowerRecs.some(recText => recText.includes(titleLower));
-  });
-  setRecommendedProducts(recProds);
+        const lowerRecs = recommendations.map(r =>
+          typeof r === "string" ? r.toLowerCase().trim() : ""
+        );
+        const recProds = products.filter(p => {
+          if (!p.title) return false;
+          const titleLower = p.title.toLowerCase().trim();
+          return lowerRecs.some(recText => recText.includes(titleLower));
+        });
+        setRecommendedProducts(recProds);
 
-  // 2) CẬP NHẬT LẠI SEARCH & VIEW HISTORY dựa vào response của /recommend
-  setSearchHistory(Array.isArray(search_history) ? search_history : []);
-  setViewedHistory(Array.isArray(view_history) ? view_history : []);
-} else {
-  // Nếu lỗi: reset recommendedProducts và không đổi lịch sử
-  setRecommendedProducts([]);
-}
+        setSearchHistory(Array.isArray(search_history) ? search_history : []);
+        setViewedHistory(Array.isArray(view_history) ? view_history : []);
+      } else {
+        console.error("Recommend API error", body);
+        setRecommendedProducts([]);
+      }
     } catch (err) {
-      console.error('Fetch recommendations failed', err);
+      console.error("Fetch recommendations failed", err);
       setRecommendedProducts([]);
     }
   })();
-}, [token, loginUsername, products]);
+}, [token, userProfile, products]);
+
 
 
 
